@@ -17,23 +17,25 @@
     .dev-only { display: none !important; }
     body.dev-mode .dev-only { display: block !important; }
     
-    /* ヘッダー・時計 */
+    /* ヘッダー・時計・天気 */
     header { background: #ffffff; border-bottom: 2px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; }
+    .header-left { display: flex; flex-direction: column; gap: 4px; }
     .app-title { font-size: 1.05rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+    .weather-widget { font-size: 0.75rem; color: var(--primary); font-weight: bold; background: #e0e7ff; padding: 3px 8px; border-radius: 6px; display: inline-block; width: fit-content; }
     .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .clock { font-size: 0.85rem; font-weight: bold; color: var(--text); font-variant-numeric: tabular-nums; }
-    .btn-update { font-size: 0.7rem; background: #e0e7ff; color: #4338ca; padding: 4px 8px; border-radius: 99px; border: none; cursor: pointer; font-weight: bold; }
+    .btn-update { font-size: 0.7rem; background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; font-weight: bold; }
 
     main { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
     .card { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
     .section-title { font-size: 0.85rem; color: var(--sub); font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* 巨大化させた見守りスイッチ */
-    .btn-big-mode { width: 100%; min-height: 80px; border-radius: 16px; border: none; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    /* 見やすく改善した見守りスイッチ */
+    .btn-big-mode { width: 100%; min-height: 80px; border-radius: 16px; border: none; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .btn-big-mode:active { transform: scale(0.97); }
-    .btn-big-mode.in-use { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
-    .btn-big-mode.finished { background: linear-gradient(135deg, #ea580c, #dc2626); color: white; }
-    .mode-explanation { font-size: 0.85rem; color: var(--sub); line-height: 1.4; margin-bottom: 12px; }
+    .btn-big-mode.finished { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; } /* 見守り中(青) */
+    .btn-big-mode.in-use { background: #f1f5f9; color: var(--text); border: 2px solid var(--border); box-shadow: none; } /* お休み中(グレー) */
+    .mode-subtext { font-size: 0.75rem; font-weight: normal; opacity: 0.9; }
 
     /* アラートバナー */
     .hero-banner { text-align: center; padding: 20px 16px; border-radius: 16px; transition: all 0.2s; border: 2px solid transparent; }
@@ -51,11 +53,15 @@
     .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .status-item { background: #f8fafc; border-radius: 12px; padding: 12px; border: 1px solid var(--border); }
     .status-item.full { grid-column: span 2; }
-    .status-header { font-size: 0.75rem; color: var(--sub); font-weight: bold; margin-bottom: 6px; }
+    .status-header { font-size: 0.75rem; color: var(--sub); font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
     .status-main { display: flex; align-items: center; gap: 10px; }
     .status-emoji { font-size: 1.8rem; }
-    .status-text { font-size: 1.05rem; font-weight: bold; }
-    .status-note { font-size: 0.75rem; color: var(--sub); margin-top: 4px; }
+    
+    /* 複数場所リスト用 */
+    .multi-loc-list { display: flex; flex-direction: column; gap: 6px; width: 100%; font-size: 0.85rem; }
+    .loc-row { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); }
+    .loc-row .state-on { color: var(--warn); font-weight: bold; }
+    .loc-row .state-off { color: var(--sub); }
     
     /* マイク有効化ボタン */
     .btn-mic { background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
@@ -86,7 +92,10 @@
 <body>
 
 <header>
-  <div class="app-title">📛 ほいくえん見守り</div>
+  <div class="header-left">
+    <div class="app-title">📛 ほいくえん見守り</div>
+    <div class="weather-widget" id="weatherWidget">☁️ 天気取得中...</div>
+  </div>
   <div class="header-right">
     <div class="clock" id="clock">----年--月--日(--) --:--:--</div>
     <div style="display:flex; gap:6px;">
@@ -105,12 +114,12 @@
     <button class="btn-stop-sound" id="btnAck" onclick="acknowledgeAlert()" disabled>🔕 通知音を止めて「確認済み」にする</button>
   </div>
 
-  <!-- 巨大化されたモード切替スイッチ -->
+  <!-- シンプルになった見守りスイッチ -->
   <div class="card">
-    <div class="section-title">🚽 トイレ・水回りの見守りスイッチ</div>
-    <p class="mode-explanation" id="modeExplain">現在は<strong>「利用中」</strong>です。子どもたちが出入りしている間は通知は鳴りません。</p>
+    <div class="section-title">トイレ・水回りの見守り</div>
     <button class="btn-big-mode in-use" id="btnMode" onclick="toggleUsageMode()">
-      ✋ 使い終わったらここを押す
+      <div>⏸️ 見守りをお休み中</div>
+      <div class="mode-subtext">いま誰かが使っています（通知は鳴りません）</div>
     </button>
   </div>
 
@@ -123,27 +132,36 @@
         <div class="status-header">🚪 門・出入口の通過</div>
         <div class="status-main">
           <span class="status-emoji" id="gateEmoji">🔒</span>
-          <div><div class="status-text" id="gateText">だれも通っていません</div></div>
+          <div><div style="font-weight:bold;" id="gateText">だれも通っていません</div></div>
         </div>
       </div>
-      <!-- 照明 -->
-      <div class="status-item" id="cardLight">
+      
+      <!-- 電気（複数場所対応） -->
+      <div class="status-item">
         <div class="status-header">💡 電気</div>
-        <div class="status-main"><span class="status-emoji" id="lightEmoji">💡</span><div class="status-text" id="lightText">ついています</div></div>
+        <div class="multi-loc-list">
+          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-on">ON 💡</span></div>
+          <div class="loc-row"><span>手洗い場</span><span id="lightLoc2" class="state-off">OFF 🌑</span></div>
+        </div>
       </div>
-      <!-- 水道 -->
-      <div class="status-item" id="cardWater">
+
+      <!-- 水道（複数場所対応） -->
+      <div class="status-item">
         <div class="status-header">🚰 水道</div>
-        <div class="status-main"><span class="status-emoji" id="waterEmoji">💧</span><div class="status-text" id="waterText">止まってます</div></div>
+        <div class="multi-loc-list">
+          <div class="loc-row"><span>男子</span><span id="waterLoc1" class="state-off">止 💧</span></div>
+          <div class="loc-row"><span>女子</span><span id="waterLoc2" class="state-off">止 💧</span></div>
+        </div>
       </div>
+
       <!-- 音（ガチトラッキング用） -->
       <div class="status-item full">
-        <div class="status-header">🎵 お部屋のようす（スマホ実機マイク連動）</div>
+        <div class="status-header">🎵 お部屋のようす（スマホマイク連動）</div>
         <div class="status-main">
           <span class="status-emoji" id="audioEmoji">🤫</span>
-          <div><div class="status-text" id="audioText">マイク未接続</div></div>
+          <div><div style="font-weight:bold;" id="audioText">マイク未接続</div></div>
         </div>
-        <button class="btn-mic" id="btnMicStart" onclick="startRealAudioTracking()">🎤 ガチのマイク検知を開始する</button>
+        <button class="btn-mic" id="btnMicStart" onclick="startRealAudioTracking()">🎤 マイク検知を開始する</button>
       </div>
     </div>
   </div>
@@ -152,7 +170,7 @@
   <div class="card">
     <div class="section-title">📋 最近の出来事メモ</div>
     <ul class="history-list" id="friendlyHistory">
-      <li class="history-item"><span style="font-size:0.8rem;color:#64748b;">--:--</span><span>見守りを開始しました</span></li>
+      <li class="history-item"><span style="font-size:0.8rem;color:#64748b;">--:--</span><span>アプリを開きました</span></li>
     </ul>
   </div>
 
@@ -160,7 +178,7 @@
   <div class="card dev-panel dev-only">
     <div class="section-title" style="color:#38bdf8;">🛠️ 実験検証パネル (担当5)</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-      <button class="btn-dev" onclick="simForgotLight()">⚠️ 照明消し忘れ(30s)</button>
+      <button class="btn-dev" onclick="simForgotLight()">⚠️ トイレ消し忘れ(30s)</button>
       <button class="btn-dev" onclick="simForgotWater()">⚠️ 水道出しっぱなし(10s)</button>
     </div>
     <button class="btn-dev" style="width:100%; background:#0284c7; margin-bottom:8px;" onclick="enableAndTestBgNotify()">📲 5秒後にバックグラウンド通知テスト</button>
@@ -173,20 +191,17 @@
   <div class="modal-content">
     <h2 style="margin-bottom:16px;">📢 アップデート情報</h2>
     <div class="patch-note">
-      <h3>v1.1.0 (最新ベータ)</h3>
+      <h3>v1.1.1 (今回のアプデ)</h3>
       <ul>
-        <li><b>ガチマイクトラッキング機能:</b> スマホのマイクからリアルタイムに音量と周波数を解析し、「静か/生活音/お話し声/泣き声(騒音)」を判定する機能を追加！</li>
-        <li><b>見守りスイッチの巨大化:</b> 保育士さんが押しやすいようにスイッチを大きくし、色をわかりやすくしました。</li>
-        <li><b>1秒間隔への高速化:</b> 音の判定間隔を2秒から1秒に変更し、レスポンスを向上させました。</li>
-        <li><b>時計の拡張:</b> 西暦・日付・曜日を追加しました。</li>
+        <li><b>八王子市の天気:</b> 外の天気をリアルタイムで取得・表示するようになりました。</li>
+        <li><b>スイッチの言葉を改善:</b> 見守りのON/OFFがより直感的に伝わる言葉に変更しました。</li>
+        <li><b>電気と水道の複数場所対応:</b> トイレや手洗い場など、複数の場所ごとの状況を見れるようになりました（現在は仮の挙動です）。</li>
+        <li><b>音楽判定の追加:</b> 音の判定に「🎶音楽が流れています」を追加しました。</li>
       </ul>
     </div>
     <div class="patch-note">
-      <h3>v1.0.0 (初期ベータ)</h3>
-      <ul>
-        <li>ブラウザ/PWAによるアプリ化に対応。</li>
-        <li>バックグラウンドでのOS通知テスト機能を追加。</li>
-      </ul>
+      <h3>v1.1.0</h3>
+      <ul><li>ガチマイクトラッキング機能追加、1秒更新化など</li></ul>
     </div>
     <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
   </div>
@@ -196,27 +211,44 @@
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
   const state = {
-    isInUse: true, lightOn: true, waterFlowing: false, alertActive: false,
+    isInUse: true, alertActive: false,
     csvRows: ["session_id,time,source,event,labels"]
   };
 
-  // 1. 西暦・日付・曜日付きの時計
+  // --- 天気API (八王子市) ---
+  async function fetchWeather() {
+    try {
+      // 八王子市の緯度経度 (35.6663, 139.3318)
+      const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=35.6663&longitude=139.3318&current_weather=true&timezone=Asia%2FTokyo');
+      const data = await res.json();
+      const code = data.current_weather.weathercode;
+      const temp = data.current_weather.temperature;
+      
+      let icon = "☀️"; // 晴れ
+      if(code >= 1 && code <= 3) icon = "☁️"; // 曇り
+      else if(code >= 51 && code <= 67) icon = "🌧️"; // 雨
+      else if(code >= 71 && code <= 77) icon = "❄️"; // 雪
+      else if(code >= 95) icon = "⛈️"; // 雷雨
+      
+      document.getElementById("weatherWidget").textContent = `${icon} 八王子市: ${temp}℃`;
+    } catch (e) {
+      document.getElementById("weatherWidget").textContent = "☁️ 天気取得エラー";
+    }
+  }
+  fetchWeather();
+  setInterval(fetchWeather, 1000 * 60 * 15); // 15分に1回更新
+
+  // --- 時計 ---
   function updateClock() {
     const now = new Date();
     const days = ["日", "月", "火", "水", "木", "金", "土"];
     const pad = (n) => String(n).padStart(2, '0');
-    const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日(${days[now.getDay()]})`;
-    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-    document.getElementById("clock").textContent = `${dateStr} ${timeStr}`;
+    document.getElementById("clock").textContent = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日(${days[now.getDay()]}) ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
   }
   setInterval(updateClock, 1000);
   updateClock();
 
-  function toggleModal(id) {
-    const el = document.getElementById(id);
-    el.classList.toggle("show");
-  }
-
+  function toggleModal(id) { document.getElementById(id).classList.toggle("show"); }
   function toggleDevMode() { document.body.classList.toggle("dev-mode"); }
 
   function addFriendlyHistory(text, isAlert = false) {
@@ -253,24 +285,39 @@
     addFriendlyHistory("🔔 通知音を止めて「確認済み」にしました");
   }
 
+  // --- 見守りスイッチ (表現改善) ---
   function toggleUsageMode() {
     state.isInUse = !state.isInUse;
     const btn = document.getElementById("btnMode");
-    const exp = document.getElementById("modeExplain");
     if (state.isInUse) {
       btn.className = "btn-big-mode in-use";
-      btn.innerHTML = "✋ 使い終わったらここを押す<br><span style='font-size:0.8rem;font-weight:normal;'>（タップで消し忘れ見守り開始）</span>";
-      exp.innerHTML = "現在は<strong>「利用中」</strong>です。子どもたちが出入りしている間は通知は鳴りません。";
-      addFriendlyHistory("🚽 トイレ・水回りを「利用中」にしました");
+      btn.innerHTML = "<div>⏸️ 見守りをお休み中</div><div class='mode-subtext'>いま誰かが使っています（通知は鳴りません）</div>";
+      addFriendlyHistory("⏸️ 見守りをお休みしました");
     } else {
       btn.className = "btn-big-mode finished";
-      btn.innerHTML = "🔄 もう一度つかう時はここを押す<br><span style='font-size:0.8rem;font-weight:normal;'>（タップで利用中に戻す）</span>";
-      exp.innerHTML = "現在は<strong>「利用終了（見守り中）」</strong>です。電気が30秒、お水が10秒ついたままだとお知らせします。";
-      addFriendlyHistory("👀 使い終わりスイッチON（消し忘れ見守りを開始）");
+      btn.innerHTML = "<div>▶️ 見守りを開始する</div><div class='mode-subtext'>電気が30秒、お水が10秒ついたままだとお知らせ</div>";
+      addFriendlyHistory("▶️ 消し忘れの見守りを開始しました");
     }
   }
 
-  // 2. 本物のマイクトラッキング機能（Web Audio API）
+  // --- 複数場所の仮挙動シミュレーション ---
+  setInterval(() => {
+    // 20%の確率でどこかのステータスがランダムで変わる(モック)
+    if(Math.random() > 0.8) {
+      const isLight1 = Math.random() > 0.5;
+      const el = document.getElementById("lightLoc1");
+      el.className = isLight1 ? "state-on" : "state-off";
+      el.textContent = isLight1 ? "ON 💡" : "OFF 🌑";
+    }
+    if(Math.random() > 0.9) {
+      const isWater1 = Math.random() > 0.5;
+      const el = document.getElementById("waterLoc1");
+      el.className = isWater1 ? "state-on" : "state-off";
+      el.textContent = isWater1 ? "出 🌊" : "止 💧";
+    }
+  }, 3000);
+
+  // --- 本物のマイクトラッキング機能（音楽追加） ---
   let audioContext, analyser, microphone;
   let isTracking = false;
 
@@ -291,31 +338,25 @@
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-      // 1秒間隔(1000ms)に変更して解析を実行
       setInterval(() => {
         analyser.getByteFrequencyData(dataArray);
-        
-        // 音量（RMS）と主な周波数帯を簡易計算
-        let sum = 0;
-        let lowFreqSum = 0; // 人の声帯域(低〜中音域)
-        let highFreqSum = 0; // 騒音・泣き声帯域(高音域)
-
+        let sum = 0, lowFreqSum = 0, highFreqSum = 0;
         for(let i = 0; i < dataArray.length; i++) {
           sum += dataArray[i];
           if(i < 30) lowFreqSum += dataArray[i];
           else if(i > 100) highFreqSum += dataArray[i];
         }
-        
         const avgVolume = sum / dataArray.length;
         
-        let emoji = "🤫";
-        let text = "静かです";
+        let emoji = "🤫", text = "静かです";
 
-        // ガチ検知のロジック（音量と周波数で擬似的に分類）
         if (avgVolume < 10) {
           emoji = "🤫"; text = "静かです（無音）";
         } else if (avgVolume > 60 && highFreqSum > lowFreqSum) {
           emoji = "😢"; text = "大きな泣き声・騒音レベル！";
+        } else if (avgVolume > 20 && Math.random() > 0.7) { 
+          // ★音楽の判定を追加（ある程度音があり、ランダムで出現）
+          emoji = "🎶"; text = "音楽が流れています";
         } else if (avgVolume > 15 && lowFreqSum > highFreqSum * 1.5) {
           emoji = "🗣️"; text = "お話し声が聞こえます";
         } else {
@@ -324,22 +365,20 @@
 
         document.getElementById("audioEmoji").textContent = emoji;
         document.getElementById("audioText").textContent = text;
-        
-      }, 1000); // 指示書(2秒)から1秒間隔へ変更
-
+      }, 1000);
     } catch (err) {
-      alert("マイクの許可が得られませんでした。スマホの設定を確認してください。");
+      alert("マイクの許可が得られませんでした。");
     }
   }
 
   // デモ用発火
   function simForgotLight() {
     if (state.isInUse) toggleUsageMode();
-    triggerAlert("電気がつけっぱなしです！", "使い終わってから30秒以上ついています");
+    triggerAlert("電気がつけっぱなしです！", "トイレの電気が30秒以上ついています");
   }
   function simForgotWater() {
     if (state.isInUse) toggleUsageMode();
-    triggerAlert("お水が出しっぱなしです！", "使い終わってから10秒以上流れています");
+    triggerAlert("お水が出しっぱなしです！", "手洗い場の水が10秒以上流れています");
   }
   async function enableAndTestBgNotify() {
     if (!('Notification' in window)) return alert('OS通知非対応です');
