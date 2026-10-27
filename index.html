@@ -1,101 +1,86 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <link rel="manifest" href="manifest.json">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ほいくえん見守りアプリ (Beta)</title>
+  <link rel="manifest" href="manifest.json">
   <style>
     :root {
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #1e293b;
-      --sub: #64748b;
-      --safe: #16a34a;
-      --safe-bg: #dcfce7;
-      --warn: #ea580c;
-      --warn-bg: #ffedd5;
-      --danger: #dc2626;
-      --danger-bg: #fee2e2;
-      --primary: #2563eb;
-      --border: #e2e8f0;
-      --dev-bg: #1e293b;
+      --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --sub: #64748b;
+      --safe: #16a34a; --safe-bg: #dcfce7; --warn: #ea580c; --warn-bg: #ffedd5;
+      --danger: #dc2626; --danger-bg: #fee2e2; --primary: #2563eb; --border: #e2e8f0;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif; }
     body { background: var(--bg); color: var(--text); max-width: 480px; margin: 0 auto; padding-bottom: 48px; }
 
-    /* 開発者モードの表示制御 */
     .dev-only { display: none !important; }
     body.dev-mode .dev-only { display: block !important; }
-    body.dev-mode .dev-flex { display: flex !important; }
-    body.dev-mode .dev-grid { display: grid !important; }
-
-    /* ヘッダー */
+    
+    /* ヘッダー・時計 */
     header { background: #ffffff; border-bottom: 2px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; }
     .app-title { font-size: 1.05rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
-    .header-right { display: flex; align-items: center; gap: 10px; }
-    .clock { font-size: 0.95rem; font-weight: bold; color: var(--sub); font-variant-numeric: tabular-nums; }
-    
-    /* 開発者モード切替スイッチ */
-    .dev-toggle { display: flex; align-items: center; gap: 4px; font-size: 0.75rem; background: #f1f5f9; padding: 4px 8px; border-radius: 99px; cursor: pointer; border: 1px solid var(--border); user-select: none; }
-    body.dev-mode .dev-toggle { background: #1e293b; color: #38bdf8; border-color: #0284c7; font-weight: bold; }
+    .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+    .clock { font-size: 0.85rem; font-weight: bold; color: var(--text); font-variant-numeric: tabular-nums; }
+    .btn-update { font-size: 0.7rem; background: #e0e7ff; color: #4338ca; padding: 4px 8px; border-radius: 99px; border: none; cursor: pointer; font-weight: bold; }
 
     main { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
     .card { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
     .section-title { font-size: 0.85rem; color: var(--sub); font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* 1. 一番上の大きなお知らせ看板 */
+    /* 巨大化させた見守りスイッチ */
+    .btn-big-mode { width: 100%; min-height: 80px; border-radius: 16px; border: none; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .btn-big-mode:active { transform: scale(0.97); }
+    .btn-big-mode.in-use { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
+    .btn-big-mode.finished { background: linear-gradient(135deg, #ea580c, #dc2626); color: white; }
+    .mode-explanation { font-size: 0.85rem; color: var(--sub); line-height: 1.4; margin-bottom: 12px; }
+
+    /* アラートバナー */
     .hero-banner { text-align: center; padding: 20px 16px; border-radius: 16px; transition: all 0.2s; border: 2px solid transparent; }
     .hero-banner.safe { background: var(--safe-bg); border-color: #86efac; color: #14532d; }
     .hero-banner.danger { background: var(--danger-bg); border-color: #fca5a5; color: #7f1d1d; animation: pulse 1.2s infinite; }
     .hero-banner.acked { background: var(--warn-bg); border-color: #fdba74; color: #7c2d12; }
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.99); opacity: 0.92; } }
-    
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); opacity: 0.92; } }
     .hero-icon { font-size: 2.4rem; margin-bottom: 6px; }
     .hero-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 4px; }
     .hero-sub { font-size: 0.85rem; opacity: 0.85; }
-    .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(220,38,38,0.3); }
+    .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; }
     .btn-stop-sound:disabled { display: none; }
 
-    /* 2. 保育士さん用のワンタップ操作ボタン */
-    .mode-box { display: flex; flex-direction: column; gap: 10px; }
-    .mode-explanation { font-size: 0.85rem; color: var(--sub); line-height: 1.4; }
-    .btn-big-mode { width: 100%; padding: 14px; border-radius: 12px; border: none; font-size: 1rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.15s; }
-    .btn-big-mode.in-use { background: #0284c7; color: white; }
-    .btn-big-mode.finished { background: var(--warn); color: white; }
-
-    /* 3. 4つの見守りカード */
+    /* ステータスグリッド */
     .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .status-item { background: #f8fafc; border-radius: 12px; padding: 12px; border: 1px solid var(--border); display: flex; flex-direction: column; justify-content: space-between; }
+    .status-item { background: #f8fafc; border-radius: 12px; padding: 12px; border: 1px solid var(--border); }
     .status-item.full { grid-column: span 2; }
-    .status-item.warn-state { background: #fff7ed; border-color: #fdba74; }
-    .status-header { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--sub); font-weight: bold; margin-bottom: 6px; }
-    .status-main { display: flex; align-items: center; gap: 10px; margin: 4px 0; }
+    .status-header { font-size: 0.75rem; color: var(--sub); font-weight: bold; margin-bottom: 6px; }
+    .status-main { display: flex; align-items: center; gap: 10px; }
     .status-emoji { font-size: 1.8rem; }
-    .status-text { font-size: 1.05rem; font-weight: bold; color: var(--text); }
+    .status-text { font-size: 1.05rem; font-weight: bold; }
     .status-note { font-size: 0.75rem; color: var(--sub); margin-top: 4px; }
+    
+    /* マイク有効化ボタン */
+    .btn-mic { background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
+    .btn-mic.active { background: #e2e8f0; color: #64748b; cursor: default; }
 
-    /* 4. やさしい履歴リスト */
+    /* 履歴リスト */
     .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; }
     .history-item { font-size: 0.85rem; padding: 8px 10px; background: #f8fafc; border-radius: 8px; display: flex; gap: 10px; align-items: center; border-left: 4px solid #cbd5e1; }
     .history-item.alert { border-left-color: var(--danger); background: #fef2f2; font-weight: bold; }
-    .history-time { font-family: monospace; color: var(--sub); font-size: 0.8rem; }
 
-    /* --- 開発者モード専用スタイル --- */
-    .dev-badge { font-family: monospace; font-size: 0.7rem; background: #e2e8f0; color: #334155; padding: 2px 6px; border-radius: 4px; }
+    /* アプデ履歴モーダル */
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
+    .modal-overlay.show { display: flex; }
+    .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+    .patch-note { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
+    .patch-note h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; }
+    .patch-note ul { padding-left: 20px; font-size: 0.85rem; line-height: 1.5; color: var(--text); }
+    .btn-close { background: var(--text); color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+
+    /* 開発者パネル */
+    .dev-toggle { margin-top: 4px; display: flex; align-items: center; gap: 4px; font-size: 0.7rem; background: #f1f5f9; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; }
+    body.dev-mode .dev-toggle { background: #1e293b; color: #38bdf8; border-color: #0284c7; font-weight: bold; }
     .dev-panel { background: #0f172a; color: #f8fafc; border: 2px solid #38bdf8; }
-    .dev-panel .section-title { color: #38bdf8; }
-    .score-bar-wrap { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); font-size: 0.75rem; }
-    .score-row { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-    .score-label { width: 80px; color: var(--sub); }
-    .bar-bg { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; position: relative; overflow: hidden; }
-    .bar-fill { height: 100%; background: var(--primary); transition: width 0.3s; }
-    .bar-thresh { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--danger); }
-    .score-val { width: 32px; text-align: right; font-family: monospace; }
-    .csv-box { font-family: monospace; font-size: 0.7rem; background: #020617; color: #a5f3fc; padding: 10px; border-radius: 8px; height: 120px; overflow-y: auto; white-space: pre; margin-top: 8px; border: 1px solid #334155; }
-    .sim-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+    .csv-box { font-family: monospace; font-size: 0.7rem; background: #020617; padding: 10px; border-radius: 8px; height: 100px; overflow-y: auto; white-space: pre; margin-top: 8px; border: 1px solid #334155; }
     .btn-dev { background: #1e293b; color: #e2e8f0; border: 1px solid #475569; padding: 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
-    .btn-dev:active { background: #334155; }
   </style>
 </head>
 <body>
@@ -103,458 +88,266 @@
 <header>
   <div class="app-title">📛 ほいくえん見守り</div>
   <div class="header-right">
-    <span class="clock" id="clock">--:--</span>
-    <label class="dev-toggle" onclick="toggleDevMode()">
-      <span>🔧 開発者</span>
-      <span id="devStateText">OFF</span>
-    </label>
+    <div class="clock" id="clock">----年--月--日(--) --:--:--</div>
+    <div style="display:flex; gap:6px;">
+      <button class="btn-update" onclick="toggleModal('updateModal')">📢 アプデ履歴</button>
+      <label class="dev-toggle" onclick="toggleDevMode()"><span>🔧 開発者</span></label>
+    </div>
   </div>
 </header>
 
 <main>
-  <!-- ① 一番目立つお知らせ看板（異常があるか・ないか） -->
+  <!-- アラート看板 -->
   <div class="hero-banner safe" id="heroBanner">
     <div class="hero-icon" id="heroIcon">😊</div>
     <div class="hero-title" id="heroTitle">いま異常はありません</div>
     <div class="hero-sub" id="heroSub">すべて正常に見守り中です</div>
-    <button class="btn-stop-sound" id="btnAck" onclick="acknowledgeAlert()" disabled>
-      🔕 通知音を止めて「確認済み」にする
-    </button>
+    <button class="btn-stop-sound" id="btnAck" onclick="acknowledgeAlert()" disabled>🔕 通知音を止めて「確認済み」にする</button>
   </div>
 
-  <!-- ② トイレ・水回りの利用モード切替（保育士さんが触るボタン） -->
-  <div class="card mode-box">
-    <div class="section-title">
-      <span>🚽 トイレ・水回りの見守りスイッチ</span>
-      <span class="dev-only dev-badge" id="devModeFlag">mode: in_use (1)</span>
-    </div>
-    <p class="mode-explanation" id="modeExplain">
-      現在は<strong>「利用中」</strong>です。子どもたちが出入りしている間は、電気や水道の通知は鳴りません。
-    </p>
-    <button class="btn-big-mode in-use" id="btnMode" onclick="toggleUsageMode()">
-      ✋ 使い終わったらここを押す（消し忘れ見守り開始）
-    </button>
-  </div>
-
-  <!-- ③ 各場所のわかりやすいステータス一覧 -->
+  <!-- 巨大化されたモード切替スイッチ -->
   <div class="card">
-    <div class="section-title">
-      <span>👀 各ばしょの今のようす</span>
-      <span class="dev-only dev-badge">リアルタイム監視中</span>
-    </div>
+    <div class="section-title">🚽 トイレ・水回りの見守りスイッチ</div>
+    <p class="mode-explanation" id="modeExplain">現在は<strong>「利用中」</strong>です。子どもたちが出入りしている間は通知は鳴りません。</p>
+    <button class="btn-big-mode in-use" id="btnMode" onclick="toggleUsageMode()">
+      ✋ 使い終わったらここを押す
+    </button>
+  </div>
 
+  <!-- 各ばしょのようす -->
+  <div class="card">
+    <div class="section-title">👀 各ばしょの今のようす</div>
     <div class="status-grid">
-      <!-- 門・ゲート（担当2） -->
-      <div class="status-item full" id="cardGate">
-        <div class="status-header">
-          <span>🚪 門・出入口の通過</span>
-          <span class="dev-only dev-badge">担当2: GPIO17 / 27</span>
-        </div>
+      <!-- 門 -->
+      <div class="status-item full">
+        <div class="status-header">🚪 門・出入口の通過</div>
         <div class="status-main">
           <span class="status-emoji" id="gateEmoji">🔒</span>
-          <div>
-            <div class="status-text" id="gateText">だれも通っていません</div>
-            <div class="status-note" id="gateNote">最後に確認: 記録なし</div>
-          </div>
+          <div><div class="status-text" id="gateText">だれも通っていません</div></div>
         </div>
       </div>
-
-      <!-- 照明（担当3） -->
-      <div class="status-item warn-state" id="cardLight">
-        <div class="status-header">
-          <span>💡 電気（照明）</span>
-          <span class="dev-only dev-badge">担当3: GPIO22</span>
-        </div>
-        <div class="status-main">
-          <span class="status-emoji" id="lightEmoji">💡</span>
-          <div class="status-text" id="lightText">ついています</div>
-        </div>
-        <div class="status-note" id="lightNote">終了後30秒でお知らせ</div>
+      <!-- 照明 -->
+      <div class="status-item" id="cardLight">
+        <div class="status-header">💡 電気</div>
+        <div class="status-main"><span class="status-emoji" id="lightEmoji">💡</span><div class="status-text" id="lightText">ついています</div></div>
       </div>
-
-      <!-- 水道（担当4） -->
+      <!-- 水道 -->
       <div class="status-item" id="cardWater">
-        <div class="status-header">
-          <span>🚰 水道（お水）</span>
-          <span class="dev-only dev-badge">担当4: GPIO23</span>
-        </div>
-        <div class="status-main">
-          <span class="status-emoji" id="waterEmoji">💧</span>
-          <div class="status-text" id="waterText">止まっています</div>
-        </div>
-        <div class="status-note" id="waterNote">終了後10秒でお知らせ</div>
+        <div class="status-header">🚰 水道</div>
+        <div class="status-main"><span class="status-emoji" id="waterEmoji">💧</span><div class="status-text" id="waterText">止まってます</div></div>
       </div>
-
-      <!-- お部屋の音（担当1） -->
+      <!-- 音（ガチトラッキング用） -->
       <div class="status-item full">
-        <div class="status-header">
-          <span>🎵 お部屋のようす（音）</span>
-          <span class="dev-only dev-badge" id="devAudioWindow">担当1: YAMNet (0s-2s)</span>
-        </div>
+        <div class="status-header">🎵 お部屋のようす（スマホ実機マイク連動）</div>
         <div class="status-main">
-          <span class="status-emoji" id="audioEmoji">🗣️</span>
-          <div>
-            <div class="status-text" id="audioText">お話し声が聞こえます</div>
-            <div class="status-note">※録音はせず、音の種類だけを自動で記録しています</div>
-          </div>
+          <span class="status-emoji" id="audioEmoji">🤫</span>
+          <div><div class="status-text" id="audioText">マイク未接続</div></div>
         </div>
-
-        <!-- 開発者モードONの時だけ見える厳密なスコアバー -->
-        <div class="dev-only score-bar-wrap">
-          <div>RAWラベル: <strong id="devRawLabel">SPEECH</strong> / 状態: <strong id="devAudioStatus">ok</strong></div>
-          <div class="score-row">
-            <span class="score-label">発話 (≥0.30)</span>
-            <div class="bar-bg"><div class="bar-fill" id="barSpeech" style="width:65%"></div><div class="bar-thresh" style="left:30%"></div></div>
-            <span class="score-val" id="valSpeech">0.65</span>
-          </div>
-          <div class="score-row">
-            <span class="score-label">泣声 (≥0.20)</span>
-            <div class="bar-bg"><div class="bar-fill" id="barCry" style="width:5%"></div><div class="bar-thresh" style="left:20%"></div></div>
-            <span class="score-val" id="valCry">0.05</span>
-          </div>
-          <div class="score-row">
-            <span class="score-label">音楽 (≥0.30)</span>
-            <div class="bar-bg"><div class="bar-fill" id="barMusic" style="width:12%"></div><div class="bar-thresh" style="left:30%"></div></div>
-            <span class="score-val" id="valMusic">0.12</span>
-          </div>
-        </div>
+        <button class="btn-mic" id="btnMicStart" onclick="startRealAudioTracking()">🎤 ガチのマイク検知を開始する</button>
       </div>
     </div>
   </div>
 
-  <!-- ④ わかりやすい出来事メモ（保育士さん向け履歴） -->
+  <!-- 履歴 -->
   <div class="card">
-    <div class="section-title">
-      <span>📋 最近の出来事メモ</span>
-      <span style="font-size:0.75rem; font-weight:normal;">最新5件</span>
-    </div>
+    <div class="section-title">📋 最近の出来事メモ</div>
     <ul class="history-list" id="friendlyHistory">
-      <li class="history-item"><span class="history-time">--:--</span><span>見守りを開始しました</span></li>
+      <li class="history-item"><span style="font-size:0.8rem;color:#64748b;">--:--</span><span>見守りを開始しました</span></li>
     </ul>
   </div>
 
-  <!-- ⑤ 開発者モード専用パネル（実験制御・CSV・テスト発火） -->
+  <!-- 開発者パネル -->
   <div class="card dev-panel dev-only">
-    <div class="section-title">
-      <span>🛠️ 開発者・実験検証パネル (担当5)</span>
-      <span id="devSessionId">KOS_A_20261027_01</span>
+    <div class="section-title" style="color:#38bdf8;">🛠️ 実験検証パネル (担当5)</div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
+      <button class="btn-dev" onclick="simForgotLight()">⚠️ 照明消し忘れ(30s)</button>
+      <button class="btn-dev" onclick="simForgotWater()">⚠️ 水道出しっぱなし(10s)</button>
     </div>
-
-    <div style="display:flex; gap:8px; margin-bottom:12px;">
-      <button class="btn-dev" id="btnRec" onclick="toggleRecording()" style="flex:1; background:#dc2626; border:none;">■ 記録を停止する</button>
-      <button class="btn-dev" onclick="downloadCSV()" style="flex:1; background:#0284c7; border:none;">📥 保存CSV出力</button>
-    </div>
-
-    <div style="font-size:0.75rem; color:#94a3b8; margin-bottom:4px;">▼ センサー反応の擬似テスト発火（クリックで動作確認）</div>
-    <div class="sim-grid">
-      <button class="btn-dev" style="grid-column:span 2; background:#0284c7; color:#fff;" onclick="enableAndTestBgNotify()">
-  📲 通知許可 ＆ 5秒後に緊急通知テスト（押してホーム画面へ戻ってください）
-</button>
-      <button class="btn-dev" onclick="simGate('pass_A_B', 'AからBへ通過（外へ出た可能性）')">🚪 門通過 (A→B)</button>
-      <button class="btn-dev" onclick="simGate('pass_unknown', '門付近に反応（方向不明）')">❓ 門通過 (方向不明)</button>
-      <button class="btn-dev" onclick="simToggleLight()">💡 照明 ON/OFF 切替</button>
-      <button class="btn-dev" onclick="simToggleWater()">🚰 水道 出る/止まる</button>
-      <button class="btn-dev" onclick="simForgotLight()">⚠️ 照明 消し忘れ発火(30s)</button>
-      <button class="btn-dev" onclick="simForgotWater()">⚠️ 水道 出しっぱなし発火(10s)</button>
-      <button class="btn-dev" style="grid-column:span 2; color:#fca5a5; border-color:#ef4444;" onclick="simSensorError()">🔌 異常テスト：センサー断線・取得エラー発生</button>
-    </div>
-
-    <div style="font-size:0.75rem; color:#94a3b8; margin-top:12px;">▼ リアルタイムCSV追記ストリーム (data/*.csv 相当)</div>
+    <button class="btn-dev" style="width:100%; background:#0284c7; margin-bottom:8px;" onclick="enableAndTestBgNotify()">📲 5秒後にバックグラウンド通知テスト</button>
     <div class="csv-box" id="csvLog"></div>
   </div>
 </main>
 
+<!-- アプデ履歴モーダル -->
+<div class="modal-overlay" id="updateModal">
+  <div class="modal-content">
+    <h2 style="margin-bottom:16px;">📢 アップデート情報</h2>
+    <div class="patch-note">
+      <h3>v1.1.0 (最新ベータ)</h3>
+      <ul>
+        <li><b>ガチマイクトラッキング機能:</b> スマホのマイクからリアルタイムに音量と周波数を解析し、「静か/生活音/お話し声/泣き声(騒音)」を判定する機能を追加！</li>
+        <li><b>見守りスイッチの巨大化:</b> 保育士さんが押しやすいようにスイッチを大きくし、色をわかりやすくしました。</li>
+        <li><b>1秒間隔への高速化:</b> 音の判定間隔を2秒から1秒に変更し、レスポンスを向上させました。</li>
+        <li><b>時計の拡張:</b> 西暦・日付・曜日を追加しました。</li>
+      </ul>
+    </div>
+    <div class="patch-note">
+      <h3>v1.0.0 (初期ベータ)</h3>
+      <ul>
+        <li>ブラウザ/PWAによるアプリ化に対応。</li>
+        <li>バックグラウンドでのOS通知テスト機能を追加。</li>
+      </ul>
+    </div>
+    <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
+  </div>
+</div>
+
 <script>
-  // Service Workerの登録（GitHub更新＆バックグラウンド通知用）
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('./sw.js');
-}
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
-// OSのネイティブ通知バナーを出す関数
-function sendOSNotification(title, body) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  navigator.serviceWorker.ready.then((reg) => {
-    reg.showNotification(title, {
-      body: body,
-      icon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png',
-      vibrate: [300, 100, 300, 100, 400], // スマホを振動させる
-      tag: 'hoiku-alert',
-      renotify: true
-    });
-  });
-}
-
-// 既存のtriggerAlertが呼ばれたときにも自動でOS通知を飛ばすようにフック
-const originalTriggerAlert = triggerAlert;
-triggerAlert = function(friendlyTitle, friendlySub, rawCode) {
-  originalTriggerAlert(friendlyTitle, friendlySub, rawCode);
-  sendOSNotification(`🚨 ${friendlyTitle}`, friendlySub);
-};
-
-// 画面を閉じていても通知が来るか試す5秒タイマーテスト
-async function enableAndTestBgNotify() {
-  if (!('Notification' in window)) {
-    alert('この環境はOS通知に対応していません');
-    return;
-  }
-  const perm = await Notification.requestPermission();
-  if (perm !== 'granted') {
-    alert('スマホの設定で通知を「許可」してください');
-    return;
-  }
-  alert('5秒後に緊急通知を発火します！今すぐスマホのホーム画面に戻るか、画面を閉じて待ってみてください。');
-  setTimeout(() => {
-    simForgotLight(); // 5秒後に「照明消し忘れ」を発火＆OS通知
-  }, 5000);
-}
   const state = {
-    devMode: false,
-    sessionId: "KOS_A_20261027_01",
-    configId: "cfg01",
-    seq: 0,
-    isRecording: true,
-    isInUse: true,
-    elapsedSec: 0,
-    lightOn: true,
-    waterFlowing: false,
-    alertActive: false,
-    csvRows: [
-      "session_id,seq,time,source,event,value,labels,status,config_id,start_s,end_s,score_speech,score_cry,score_music"
-    ]
+    isInUse: true, lightOn: true, waterFlowing: false, alertActive: false,
+    csvRows: ["session_id,time,source,event,labels"]
   };
 
-  // 開発者モードのON/OFF切り替え
-  function toggleDevMode() {
-    state.devMode = !state.devMode;
-    document.body.classList.toggle("dev-mode", state.devMode);
-    document.getElementById("devStateText").textContent = state.devMode ? "ON" : "OFF";
-  }
-
-  function getNowISO() {
+  // 1. 西暦・日付・曜日付きの時計
+  function updateClock() {
     const now = new Date();
-    const pad = (n) => String(Math.floor(Math.abs(n))).padStart(2, '0');
-    return `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}+09:00`;
+    const days = ["日", "月", "火", "水", "木", "金", "土"];
+    const pad = (n) => String(n).padStart(2, '0');
+    const dateStr = `${now.getFullYear()}年${now.getMonth()+1}月${now.getDate()}日(${days[now.getDay()]})`;
+    const timeStr = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    document.getElementById("clock").textContent = `${dateStr} ${timeStr}`;
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  function toggleModal(id) {
+    const el = document.getElementById(id);
+    el.classList.toggle("show");
   }
 
-  function getShortTime() {
-    return new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  }
+  function toggleDevMode() { document.body.classList.toggle("dev-mode"); }
 
-  // 保育士さん向けの日本語タイムラインに追加
   function addFriendlyHistory(text, isAlert = false) {
     const ul = document.getElementById("friendlyHistory");
     const li = document.createElement("li");
     li.className = "history-item" + (isAlert ? " alert" : "");
-    li.innerHTML = `<span class="history-time">${getShortTime()}</span><span>${text}</span>`;
+    const time = new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    li.innerHTML = `<span style="font-size:0.8rem;color:#64748b;">${time}</span><span>${text}</span>`;
     ul.prepend(li);
-    while (ul.children.length > 6) ul.removeChild(ul.lastChild);
+    if(ul.children.length > 5) ul.removeChild(ul.lastChild);
   }
 
-  // 開発者向けの厳密なCSV行追記
-  function appendLog({ source, event, value = "", labels = "", status = "ok", start_s = "", end_s = "", scores = {} }) {
-    if (!state.isRecording) return;
-    state.seq += 1;
-    const row = [
-      state.sessionId, state.seq, getNowISO(), source, event, value, labels, status, state.configId,
-      start_s, end_s, scores.speech ?? "", scores.cry ?? "", scores.music ?? ""
-    ].join(",");
-    state.csvRows.push(row);
-
-    const logEl = document.getElementById("csvLog");
-    logEl.textContent = state.csvRows.slice(-12).join("\n");
-    logEl.scrollTop = logEl.scrollHeight;
-  }
-
-  // 大きなお知らせバナーを「警報状態」にする
-  function triggerAlert(friendlyTitle, friendlySub, rawCode) {
+  function triggerAlert(title, sub) {
     state.alertActive = true;
     const banner = document.getElementById("heroBanner");
     banner.className = "hero-banner danger";
     document.getElementById("heroIcon").textContent = "🚨";
-    document.getElementById("heroTitle").textContent = friendlyTitle;
-    document.getElementById("heroSub").textContent = `${getShortTime()} 発生 — 現場を確認してください (${rawCode})`;
+    document.getElementById("heroTitle").textContent = title;
+    document.getElementById("heroSub").textContent = sub;
     document.getElementById("btnAck").disabled = false;
-    addFriendlyHistory(`⚠️ ${friendlyTitle}`, true);
+    addFriendlyHistory(`⚠️ ${title}`, true);
+    if ('Notification' in window && Notification.permission === 'granted') {
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(`🚨 ${title}`, { body: sub, icon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }));
+    }
   }
 
-  // 通知音を止めて確認済みにする
   function acknowledgeAlert() {
-    if (!state.alertActive) return;
-    const banner = document.getElementById("heroBanner");
-    banner.className = "hero-banner acked";
-    document.getElementById("heroIcon").textContent = "👀";
-    document.getElementById("heroTitle").textContent = "通知を確認しました（音停止中）";
-    document.getElementById("heroSub").textContent = "照明や水道がそのままの場合は、止めると元の画面に戻ります";
-    document.getElementById("btnAck").disabled = true;
-    addFriendlyHistory("🔔 通知音を止めて「確認済み」にしました");
-    appendLog({ source: "system", event: "ack_alert", value: 1, status: "ok" });
-  }
-
-  // 正常バナーに戻す
-  function resetBannerToSafe() {
     state.alertActive = false;
-    const banner = document.getElementById("heroBanner");
-    banner.className = "hero-banner safe";
+    document.getElementById("heroBanner").className = "hero-banner safe";
     document.getElementById("heroIcon").textContent = "😊";
     document.getElementById("heroTitle").textContent = "いま異常はありません";
     document.getElementById("heroSub").textContent = "すべて正常に見守り中です";
     document.getElementById("btnAck").disabled = true;
+    addFriendlyHistory("🔔 通知音を止めて「確認済み」にしました");
   }
 
-  // 利用中 ⇔ 利用終了の切り替え
   function toggleUsageMode() {
     state.isInUse = !state.isInUse;
     const btn = document.getElementById("btnMode");
     const exp = document.getElementById("modeExplain");
-    const flag = document.getElementById("devModeFlag");
-
     if (state.isInUse) {
       btn.className = "btn-big-mode in-use";
-      btn.textContent = "✋ 使い終わったらここを押す（消し忘れ見守り開始）";
-      exp.innerHTML = "現在は<strong>「利用中」</strong>です。子どもたちが出入りしている間は、電気や水道の通知は鳴りません。";
-      flag.textContent = "mode: in_use (1)";
+      btn.innerHTML = "✋ 使い終わったらここを押す<br><span style='font-size:0.8rem;font-weight:normal;'>（タップで消し忘れ見守り開始）</span>";
+      exp.innerHTML = "現在は<strong>「利用中」</strong>です。子どもたちが出入りしている間は通知は鳴りません。";
       addFriendlyHistory("🚽 トイレ・水回りを「利用中」にしました");
-      appendLog({ source: "system", event: "mode_in_use", value: 1 });
-      resetBannerToSafe();
     } else {
       btn.className = "btn-big-mode finished";
-      btn.textContent = "🔄 もう一度つかう時はここを押す（利用中に戻す）";
+      btn.innerHTML = "🔄 もう一度つかう時はここを押す<br><span style='font-size:0.8rem;font-weight:normal;'>（タップで利用中に戻す）</span>";
       exp.innerHTML = "現在は<strong>「利用終了（見守り中）」</strong>です。電気が30秒、お水が10秒ついたままだとお知らせします。";
-      flag.textContent = "mode: finished (0)";
       addFriendlyHistory("👀 使い終わりスイッチON（消し忘れ見守りを開始）");
-      appendLog({ source: "system", event: "mode_finished", value: 0 });
     }
   }
 
-  // 2秒ごとの音分類シミュレーション
-  setInterval(() => {
-    document.getElementById("clock").textContent = getShortTime();
-    if (!state.isRecording) return;
+  // 2. 本物のマイクトラッキング機能（Web Audio API）
+  let audioContext, analyser, microphone;
+  let isTracking = false;
 
-    const sSpeech = +(Math.random() * 0.85).toFixed(2);
-    const sCry    = +(Math.random() * 0.28).toFixed(2);
-    const sMusic  = +(Math.random() * 0.65).toFixed(2);
+  async function startRealAudioTracking() {
+    if (isTracking) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioContext = new AudioContext();
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 512;
+      microphone = audioContext.createMediaStreamSource(stream);
+      microphone.connect(analyser);
+      
+      const btn = document.getElementById("btnMicStart");
+      btn.className = "btn-mic active";
+      btn.textContent = "🎙️ マイク連携中（リアルタイム解析中）";
+      isTracking = true;
 
-    const rawLabels = [];
-    const friendlyWords = [];
-    let emoji = "🤫";
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-    if (sSpeech >= 0.30) { rawLabels.push("SPEECH"); friendlyWords.push("お話し声"); emoji = "🗣️"; }
-    if (sMusic >= 0.30)  { rawLabels.push("MUSIC");  friendlyWords.push("音楽");     emoji = "🎶"; }
-    if (sCry >= 0.20)    { rawLabels.push("CRY");    friendlyWords.push("泣き声");   emoji = "😢"; }
+      // 1秒間隔(1000ms)に変更して解析を実行
+      setInterval(() => {
+        analyser.getByteFrequencyData(dataArray);
+        
+        // 音量（RMS）と主な周波数帯を簡易計算
+        let sum = 0;
+        let lowFreqSum = 0; // 人の声帯域(低〜中音域)
+        let highFreqSum = 0; // 騒音・泣き声帯域(高音域)
 
-    // 保育士向け表示の更新
-    document.getElementById("audioEmoji").textContent = emoji;
-    document.getElementById("audioText").textContent = friendlyWords.length > 0
-      ? `${friendlyWords.join(" と ")} が聞こえます`
-      : "静かです（特定の音なし）";
+        for(let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+          if(i < 30) lowFreqSum += dataArray[i];
+          else if(i > 100) highFreqSum += dataArray[i];
+        }
+        
+        const avgVolume = sum / dataArray.length;
+        
+        let emoji = "🤫";
+        let text = "静かです";
 
-    // 開発者向け表示の更新
-    const startS = state.elapsedSec;
-    const endS = startS + 2;
-    state.elapsedSec = endS;
-    const labelStr = rawLabels.join("|");
-    const statusStr = rawLabels.length > 0 ? "ok" : "pending";
+        // ガチ検知のロジック（音量と周波数で擬似的に分類）
+        if (avgVolume < 10) {
+          emoji = "🤫"; text = "静かです（無音）";
+        } else if (avgVolume > 60 && highFreqSum > lowFreqSum) {
+          emoji = "😢"; text = "大きな泣き声・騒音レベル！";
+        } else if (avgVolume > 15 && lowFreqSum > highFreqSum * 1.5) {
+          emoji = "🗣️"; text = "お話し声が聞こえます";
+        } else {
+          emoji = "🎵"; text = "生活音・物音がします";
+        }
 
-    document.getElementById("devAudioWindow").textContent = `担当1: YAMNet (${startS}s-${endS}s)`;
-    document.getElementById("devRawLabel").textContent = labelStr || "なし";
-    document.getElementById("devAudioStatus").textContent = statusStr;
-    document.getElementById("barSpeech").style.width = (sSpeech * 100) + "%";
-    document.getElementById("valSpeech").textContent = sSpeech.toFixed(2);
-    document.getElementById("barCry").style.width = (sCry * 100) + "%";
-    document.getElementById("valCry").textContent = sCry.toFixed(2);
-    document.getElementById("barMusic").style.width = (sMusic * 100) + "%";
-    document.getElementById("valMusic").textContent = sMusic.toFixed(2);
+        document.getElementById("audioEmoji").textContent = emoji;
+        document.getElementById("audioText").textContent = text;
+        
+      }, 1000); // 指示書(2秒)から1秒間隔へ変更
 
-    appendLog({
-      source: "audio", event: "classify", labels: labelStr, status: statusStr,
-      start_s: startS, end_s: endS, scores: { speech: sSpeech, cry: sCry, music: sMusic }
-    });
-  }, 2000);
-
-  // --- 開発者用テスト発火関数 ---
-  function simGate(eventCode, friendlyText) {
-    document.getElementById("gateEmoji").textContent = "🏃";
-    document.getElementById("gateText").textContent = friendlyText;
-    document.getElementById("gateNote").textContent = `検知時刻: ${getShortTime()}`;
-    triggerAlert(`門・出入口：${friendlyText}`, "門のセンサーが反応しました", `gate/${eventCode}`);
-    appendLog({ source: "gate", event: eventCode, value: 1, status: "ok" });
-  }
-
-  function simToggleLight() {
-    state.lightOn = !state.lightOn;
-    const card = document.getElementById("cardLight");
-    if (state.lightOn) {
-      card.classList.add("warn-state");
-      document.getElementById("lightEmoji").textContent = "💡";
-      document.getElementById("lightText").textContent = "ついています";
-      addFriendlyHistory("💡 電気がつきました");
-      appendLog({ source: "light", event: "turn_on", value: 1 });
-    } else {
-      card.classList.remove("warn-state");
-      document.getElementById("lightEmoji").textContent = "🌑";
-      document.getElementById("lightText").textContent = "消えています";
-      addFriendlyHistory("🌑 電気が消えました");
-      appendLog({ source: "light", event: "turn_off", value: 0 });
-      if (state.alertActive) resetBannerToSafe();
+    } catch (err) {
+      alert("マイクの許可が得られませんでした。スマホの設定を確認してください。");
     }
   }
 
-  function simToggleWater() {
-    state.waterFlowing = !state.waterFlowing;
-    const card = document.getElementById("cardWater");
-    if (state.waterFlowing) {
-      card.classList.add("warn-state");
-      document.getElementById("waterEmoji").textContent = "🌊";
-      document.getElementById("waterText").textContent = "水が出ています";
-      addFriendlyHistory("🚰 水道から水が出始めました");
-      appendLog({ source: "water", event: "flow_detected", value: 1 });
-    } else {
-      card.classList.remove("warn-state");
-      document.getElementById("waterEmoji").textContent = "💧";
-      document.getElementById("waterText").textContent = "止まっています";
-      addFriendlyHistory("💧 水道が止まりました");
-      appendLog({ source: "water", event: "flow_stopped", value: 0 });
-      if (state.alertActive) resetBannerToSafe();
-    }
-  }
-
+  // デモ用発火
   function simForgotLight() {
     if (state.isInUse) toggleUsageMode();
-    if (!state.lightOn) simToggleLight();
-    triggerAlert("電気がつけっぱなしです！", "使い終わってから30秒以上ついています", "light/left_on");
-    appendLog({ source: "light", event: "left_on", value: 1, status: "ok" });
+    triggerAlert("電気がつけっぱなしです！", "使い終わってから30秒以上ついています");
   }
-
   function simForgotWater() {
     if (state.isInUse) toggleUsageMode();
-    if (!state.waterFlowing) simToggleWater();
-    triggerAlert("お水が出しっぱなしです！", "使い終わってから10秒以上流れています", "water/left_flowing");
-    appendLog({ source: "water", event: "left_flowing", value: 1, status: "ok" });
+    triggerAlert("お水が出しっぱなしです！", "使い終わってから10秒以上流れています");
   }
-
-  function simSensorError() {
-    triggerAlert("センサーの点検が必要です", "線が外れているか、信号が読み取れません", "sensor/error");
-    appendLog({ source: "gate", event: "read_timeout", value: "", status: "error" });
+  async function enableAndTestBgNotify() {
+    if (!('Notification' in window)) return alert('OS通知非対応です');
+    const p = await Notification.requestPermission();
+    if (p !== 'granted') return alert('通知を許可してください');
+    alert('5秒後に緊急通知を発火します！ホーム画面に戻って待機してください。');
+    setTimeout(simForgotLight, 5000);
   }
-
-  function toggleRecording() {
-    state.isRecording = !state.isRecording;
-    const btn = document.getElementById("btnRec");
-    btn.textContent = state.isRecording ? "■ 記録を停止する" : "● 記録を再開する";
-    btn.style.background = state.isRecording ? "#dc2626" : "#16a34a";
-    appendLog({ source: "system", event: state.isRecording ? "start" : "stop", value: state.isRecording ? 1 : 0 });
-  }
-
-  function downloadCSV() {
-    const blob = new Blob([state.csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `${state.sessionId}.csv`;
-    a.click();
-  }
-
-  appendLog({ source: "system", event: "init", value: 1, status: "ok" });
 </script>
 </body>
 </html>
