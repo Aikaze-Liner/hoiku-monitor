@@ -1,71 +1,12 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js">
-    // --- 優しい警告音（Web Audio API）---
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-const audioCtx = new AudioContext();
-function playGentleChime() {
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5 (ド)
-  osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); // E5 (ミ)
-
-  gain.gain.setValueAtTime(0, audioCtx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1); // 優しくフェードイン
-  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); // ゆっくり消える
-
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 1.5);
-}
-
-// --- ESP32 連携（MQTT）と5秒タイマー処理 ---
-const mqttClient = mqtt.connect('wss://broker.hivemq.com:8443/mqtt');
-const myTopic = "kosen/hoiku/esp32_light_12345"; // 他の人と被らないよう適当な数字に変えてください
-
-let hardwareLightTimer = null;
-
-mqttClient.on('connect', () => {
-  console.log("MQTTブローカーに接続しました");
-  mqttClient.subscribe(myTopic);
-  document.getElementById("lightLoc1").textContent = "ESP接続 💡";
-});
-
-mqttClient.on('message', (topic, message) => {
-  if (!state.isInUse) { // 見守り中（お休み中ではない）場合のみ動く
-    const payload = message.toString();
-
-    if (payload === "LIGHT_ON") {
-      // 一定照度以上になったらタイマースタート
-      if (!hardwareLightTimer) {
-        addFriendlyHistory("💡 電気がつきました（5秒後に通知します）");
-        hardwareLightTimer = setTimeout(() => {
-          playGentleChime();
-          triggerAlert("電気がつけっぱなしです！", "実際のセンサーが5秒間、光を検知しました");
-        }, 5000);
-      }
-    } else if (payload === "LIGHT_OFF") {
-      // 一定照度以下になったら警告とタイマーを解除
-      if (hardwareLightTimer) {
-        clearTimeout(hardwareLightTimer);
-        hardwareLightTimer = null;
-      }
-      if (state.alertActive) {
-        acknowledgeAlert(); // 警告を解除して元の画面に戻す
-        addFriendlyHistory("🌑 電気が消えたため、警告を自動解除しました");
-      }
-    }
-  }
-});
-  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ほいくえん見守りアプリ (Beta)</title>
   <link rel="manifest" href="manifest.json">
+  <!-- MQTT通信用のライブラリを追加 -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     :root {
       --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --sub: #64748b;
@@ -91,11 +32,11 @@ mqttClient.on('message', (topic, message) => {
     .card { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
     .section-title { font-size: 0.85rem; color: var(--sub); font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* 見やすく改善した見守りスイッチ */
+    /* 見守りスイッチ */
     .btn-big-mode { width: 100%; min-height: 80px; border-radius: 16px; border: none; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .btn-big-mode:active { transform: scale(0.97); }
-    .btn-big-mode.finished { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; } /* 見守り中(青) */
-    .btn-big-mode.in-use { background: #f1f5f9; color: var(--text); border: 2px solid var(--border); box-shadow: none; } /* お休み中(グレー) */
+    .btn-big-mode.finished { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
+    .btn-big-mode.in-use { background: #f1f5f9; color: var(--text); border: 2px solid var(--border); box-shadow: none; }
     .mode-subtext { font-size: 0.75rem; font-weight: normal; opacity: 0.9; }
 
     /* アラートバナー */
@@ -107,7 +48,7 @@ mqttClient.on('message', (topic, message) => {
     .hero-icon { font-size: 2.4rem; margin-bottom: 6px; }
     .hero-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 4px; }
     .hero-sub { font-size: 0.85rem; opacity: 0.85; }
-    .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; }
+    .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
     .btn-stop-sound:disabled { display: none; }
 
     /* ステータスグリッド */
@@ -118,22 +59,19 @@ mqttClient.on('message', (topic, message) => {
     .status-main { display: flex; align-items: center; gap: 10px; }
     .status-emoji { font-size: 1.8rem; }
     
-    /* 複数場所リスト用 */
+    /* 複数場所リスト */
     .multi-loc-list { display: flex; flex-direction: column; gap: 6px; width: 100%; font-size: 0.85rem; }
     .loc-row { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); }
     .loc-row .state-on { color: var(--warn); font-weight: bold; }
     .loc-row .state-off { color: var(--sub); }
     
-    /* マイク有効化ボタン */
     .btn-mic { background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
     .btn-mic.active { background: #e2e8f0; color: #64748b; cursor: default; }
 
-    /* 履歴リスト */
+    /* 履歴・モーダル・開発者 */
     .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; }
     .history-item { font-size: 0.85rem; padding: 8px 10px; background: #f8fafc; border-radius: 8px; display: flex; gap: 10px; align-items: center; border-left: 4px solid #cbd5e1; }
     .history-item.alert { border-left-color: var(--danger); background: #fef2f2; font-weight: bold; }
-
-    /* アプデ履歴モーダル */
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
     .modal-overlay.show { display: flex; }
     .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; max-height: 80vh; overflow-y: auto; }
@@ -141,12 +79,9 @@ mqttClient.on('message', (topic, message) => {
     .patch-note h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; }
     .patch-note ul { padding-left: 20px; font-size: 0.85rem; line-height: 1.5; color: var(--text); }
     .btn-close { background: var(--text); color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-
-    /* 開発者パネル */
     .dev-toggle { margin-top: 4px; display: flex; align-items: center; gap: 4px; font-size: 0.7rem; background: #f1f5f9; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; }
     body.dev-mode .dev-toggle { background: #1e293b; color: #38bdf8; border-color: #0284c7; font-weight: bold; }
     .dev-panel { background: #0f172a; color: #f8fafc; border: 2px solid #38bdf8; }
-    .csv-box { font-family: monospace; font-size: 0.7rem; background: #020617; padding: 10px; border-radius: 8px; height: 100px; overflow-y: auto; white-space: pre; margin-top: 8px; border: 1px solid #334155; }
     .btn-dev { background: #1e293b; color: #e2e8f0; border: 1px solid #475569; padding: 8px; border-radius: 6px; font-size: 0.75rem; cursor: pointer; font-weight: bold; }
   </style>
 </head>
@@ -175,7 +110,7 @@ mqttClient.on('message', (topic, message) => {
     <button class="btn-stop-sound" id="btnAck" onclick="acknowledgeAlert()" disabled>🔕 通知音を止めて「確認済み」にする</button>
   </div>
 
-  <!-- シンプルになった見守りスイッチ -->
+  <!-- 見守りスイッチ -->
   <div class="card">
     <div class="section-title">トイレ・水回りの見守り</div>
     <button class="btn-big-mode in-use" id="btnMode" onclick="toggleUsageMode()">
@@ -197,16 +132,16 @@ mqttClient.on('message', (topic, message) => {
         </div>
       </div>
       
-      <!-- 電気（複数場所対応） -->
+      <!-- 電気 -->
       <div class="status-item">
         <div class="status-header">💡 電気</div>
         <div class="multi-loc-list">
-          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-on">ON 💡</span></div>
+          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-off">OFF 🌑</span></div>
           <div class="loc-row"><span>手洗い場</span><span id="lightLoc2" class="state-off">OFF 🌑</span></div>
         </div>
       </div>
 
-      <!-- 水道（複数場所対応） -->
+      <!-- 水道 -->
       <div class="status-item">
         <div class="status-header">🚰 水道</div>
         <div class="multi-loc-list">
@@ -215,7 +150,7 @@ mqttClient.on('message', (topic, message) => {
         </div>
       </div>
 
-      <!-- 音（ガチトラッキング用） -->
+      <!-- 音 -->
       <div class="status-item full">
         <div class="status-header">🎵 お部屋のようす（スマホマイク連動）</div>
         <div class="status-main">
@@ -242,8 +177,7 @@ mqttClient.on('message', (topic, message) => {
       <button class="btn-dev" onclick="simForgotLight()">⚠️ トイレ消し忘れ(30s)</button>
       <button class="btn-dev" onclick="simForgotWater()">⚠️ 水道出しっぱなし(10s)</button>
     </div>
-    <button class="btn-dev" style="width:100%; background:#0284c7; margin-bottom:8px;" onclick="enableAndTestBgNotify()">📲 5秒後にバックグラウンド通知テスト</button>
-    <div class="csv-box" id="csvLog"></div>
+    <button class="btn-dev" style="width:100%; background:#0284c7;" onclick="enableAndTestBgNotify()">📲 5秒後にバックグラウンド通知テスト</button>
   </div>
 </main>
 
@@ -252,17 +186,10 @@ mqttClient.on('message', (topic, message) => {
   <div class="modal-content">
     <h2 style="margin-bottom:16px;">📢 アップデート情報</h2>
     <div class="patch-note">
-      <h3>v1.1.1 (今回のアプデ)</h3>
+      <h3>v1.2.0 (ESP32連携)</h3>
       <ul>
-        <li><b>八王子市の天気:</b> 外の天気をリアルタイムで取得・表示するようになりました。</li>
-        <li><b>スイッチの言葉を改善:</b> 見守りのON/OFFがより直感的に伝わる言葉に変更しました。</li>
-        <li><b>電気と水道の複数場所対応:</b> トイレや手洗い場など、複数の場所ごとの状況を見れるようになりました（現在は仮の挙動です）。</li>
-        <li><b>音楽判定の追加:</b> 音の判定に「🎶音楽が流れています」を追加しました。</li>
+        <li><b>ESP32連動:</b> トイレの明るさセンサーと連動しました。光を検知して5秒後に警告します。</li>
       </ul>
-    </div>
-    <div class="patch-note">
-      <h3>v1.1.0</h3>
-      <ul><li>ガチマイクトラッキング機能追加、1秒更新化など</li></ul>
     </div>
     <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
   </div>
@@ -271,35 +198,90 @@ mqttClient.on('message', (topic, message) => {
 <script>
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
 
-  const state = {
-    isInUse: true, alertActive: false,
-    csvRows: ["session_id,time,source,event,labels"]
-  };
+  const state = { isInUse: true, alertActive: false };
 
-  // --- 天気API (八王子市) ---
+  // --- 音声関連（Web Audio API） ---
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  const audioCtx = new AudioContext();
+
+  function playGentleChime() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // ド
+    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); // ミ
+    gain.gain.setValueAtTime(0, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1); 
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); 
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 1.5);
+  }
+
+  // --- MQTT連携 (ESP32) ---
+  const mqttClient = mqtt.connect('wss://broker.hivemq.com:8443/mqtt');
+  const myTopic = "kosen/hoiku/esp32_light_12345";
+  let hardwareLightTimer = null;
+
+  mqttClient.on('connect', () => {
+    console.log("MQTT connected");
+    mqttClient.subscribe(myTopic);
+    // 接続成功したらUIを更新
+    const light1 = document.getElementById("lightLoc1");
+    light1.textContent = "ESP接続 💡";
+    light1.className = "state-on";
+  });
+
+  mqttClient.on('message', (topic, message) => {
+    const payload = message.toString();
+    console.log("MQTT Received:", payload); // デバッグ用
+
+    if (!state.isInUse) { // 見守り中(お休み中ではない)のみ動作
+      if (payload === "LIGHT_ON") {
+        document.getElementById("lightLoc1").textContent = "ON 💡";
+        document.getElementById("lightLoc1").className = "state-on";
+        
+        if (!hardwareLightTimer) {
+          addFriendlyHistory("💡 トイレの電気がつきました（5秒後に通知）");
+          hardwareLightTimer = setTimeout(() => {
+            // エラー停止を防ぐため通知を先に出す
+            triggerAlert("電気がつけっぱなしです！", "実際のセンサーが光を検知しました");
+            try { playGentleChime(); } catch(e) {}
+          }, 5000);
+        }
+      } else if (payload === "LIGHT_OFF") {
+        document.getElementById("lightLoc1").textContent = "OFF 🌑";
+        document.getElementById("lightLoc1").className = "state-off";
+        
+        if (hardwareLightTimer) {
+          clearTimeout(hardwareLightTimer);
+          hardwareLightTimer = null;
+        }
+        if (state.alertActive) {
+          acknowledgeAlert(); 
+          addFriendlyHistory("🌑 電気が消えたため、警告を解除しました");
+        }
+      }
+    }
+  });
+
+  // --- 天気・時計 ---
   async function fetchWeather() {
     try {
-      // 八王子市の緯度経度 (35.6663, 139.3318)
       const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=35.6663&longitude=139.3318&current_weather=true&timezone=Asia%2FTokyo');
       const data = await res.json();
       const code = data.current_weather.weathercode;
       const temp = data.current_weather.temperature;
-      
-      let icon = "☀️"; // 晴れ
-      if(code >= 1 && code <= 3) icon = "☁️"; // 曇り
-      else if(code >= 51 && code <= 67) icon = "🌧️"; // 雨
-      else if(code >= 71 && code <= 77) icon = "❄️"; // 雪
-      else if(code >= 95) icon = "⛈️"; // 雷雨
-      
+      let icon = "☀️";
+      if(code >= 1 && code <= 3) icon = "☁️"; else if(code >= 51 && code <= 67) icon = "🌧️"; else if(code >= 71) icon = "❄️";
       document.getElementById("weatherWidget").textContent = `${icon} 八王子市: ${temp}℃`;
-    } catch (e) {
-      document.getElementById("weatherWidget").textContent = "☁️ 天気取得エラー";
-    }
+    } catch (e) {}
   }
   fetchWeather();
-  setInterval(fetchWeather, 1000 * 60 * 15); // 15分に1回更新
+  setInterval(fetchWeather, 900000);
 
-  // --- 時計 ---
   function updateClock() {
     const now = new Date();
     const days = ["日", "月", "火", "水", "木", "金", "土"];
@@ -346,8 +328,8 @@ mqttClient.on('message', (topic, message) => {
     addFriendlyHistory("🔔 通知音を止めて「確認済み」にしました");
   }
 
-  // --- 見守りスイッチ (表現改善) ---
   function toggleUsageMode() {
+    if (audioCtx.state === 'suspended') audioCtx.resume(); // 音声再生の許可をブラウザから得る
     state.isInUse = !state.isInUse;
     const btn = document.getElementById("btnMode");
     if (state.isInUse) {
@@ -356,49 +338,27 @@ mqttClient.on('message', (topic, message) => {
       addFriendlyHistory("⏸️ 見守りをお休みしました");
     } else {
       btn.className = "btn-big-mode finished";
-      btn.innerHTML = "<div>▶️ 見守りを開始する</div><div class='mode-subtext'>電気が30秒、お水が10秒ついたままだとお知らせ</div>";
-      addFriendlyHistory("▶️ 消し忘れの見守りを開始しました");
+      btn.innerHTML = "<div>▶️ 見守りを開始する</div><div class='mode-subtext'>電気が30秒(ESPは5秒)ついたままだとお知らせ</div>";
+      addFriendlyHistory("▶️ 見守りを開始しました");
     }
   }
 
-  // --- 複数場所の仮挙動シミュレーション ---
-  setInterval(() => {
-    // 20%の確率でどこかのステータスがランダムで変わる(モック)
-    if(Math.random() > 0.8) {
-      const isLight1 = Math.random() > 0.5;
-      const el = document.getElementById("lightLoc1");
-      el.className = isLight1 ? "state-on" : "state-off";
-      el.textContent = isLight1 ? "ON 💡" : "OFF 🌑";
-    }
-    if(Math.random() > 0.9) {
-      const isWater1 = Math.random() > 0.5;
-      const el = document.getElementById("waterLoc1");
-      el.className = isWater1 ? "state-on" : "state-off";
-      el.textContent = isWater1 ? "出 🌊" : "止 💧";
-    }
-  }, 3000);
-
-  // --- 本物のマイクトラッキング機能（音楽追加） ---
-  let audioContext, analyser, microphone;
+  // --- マイク連携 ---
+  let analyser, microphone;
   let isTracking = false;
-
   async function startRealAudioTracking() {
     if (isTracking) return;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioContext = new AudioContext();
-      analyser = audioContext.createAnalyser();
+      analyser = audioCtx.createAnalyser();
       analyser.fftSize = 512;
-      microphone = audioContext.createMediaStreamSource(stream);
+      microphone = audioCtx.createMediaStreamSource(stream);
       microphone.connect(analyser);
-      
-      const btn = document.getElementById("btnMicStart");
-      btn.className = "btn-mic active";
-      btn.textContent = "🎙️ マイク連携中（リアルタイム解析中）";
+      document.getElementById("btnMicStart").className = "btn-mic active";
+      document.getElementById("btnMicStart").textContent = "🎙️ マイク連携中";
       isTracking = true;
 
       const dataArray = new Uint8Array(analyser.frequencyBinCount);
-
       setInterval(() => {
         analyser.getByteFrequencyData(dataArray);
         let sum = 0, lowFreqSum = 0, highFreqSum = 0;
@@ -408,38 +368,29 @@ mqttClient.on('message', (topic, message) => {
           else if(i > 100) highFreqSum += dataArray[i];
         }
         const avgVolume = sum / dataArray.length;
-        
         let emoji = "🤫", text = "静かです";
 
-        if (avgVolume < 10) {
-          emoji = "🤫"; text = "静かです（無音）";
-        } else if (avgVolume > 60 && highFreqSum > lowFreqSum) {
-          emoji = "😢"; text = "大きな泣き声・騒音レベル！";
-        } else if (avgVolume > 20 && Math.random() > 0.7) { 
-          // ★音楽の判定を追加（ある程度音があり、ランダムで出現）
-          emoji = "🎶"; text = "音楽が流れています";
-        } else if (avgVolume > 15 && lowFreqSum > highFreqSum * 1.5) {
-          emoji = "🗣️"; text = "お話し声が聞こえます";
-        } else {
-          emoji = "🎵"; text = "生活音・物音がします";
-        }
+        if (avgVolume < 10) { emoji = "🤫"; text = "静かです（無音）"; }
+        else if (avgVolume > 60 && highFreqSum > lowFreqSum) { emoji = "😢"; text = "大きな泣き声・騒音レベル！"; }
+        else if (avgVolume > 20 && Math.random() > 0.7) { emoji = "🎶"; text = "音楽が流れています"; }
+        else if (avgVolume > 15 && lowFreqSum > highFreqSum * 1.5) { emoji = "🗣️"; text = "お話し声が聞こえます"; }
+        else { emoji = "🎵"; text = "生活音・物音がします"; }
 
         document.getElementById("audioEmoji").textContent = emoji;
         document.getElementById("audioText").textContent = text;
       }, 1000);
-    } catch (err) {
-      alert("マイクの許可が得られませんでした。");
-    }
+    } catch (err) { alert("マイクの許可が得られませんでした。"); }
   }
 
-  // デモ用発火
   function simForgotLight() {
     if (state.isInUse) toggleUsageMode();
     triggerAlert("電気がつけっぱなしです！", "トイレの電気が30秒以上ついています");
+    playGentleChime();
   }
   function simForgotWater() {
     if (state.isInUse) toggleUsageMode();
     triggerAlert("お水が出しっぱなしです！", "手洗い場の水が10秒以上流れています");
+    playGentleChime();
   }
   async function enableAndTestBgNotify() {
     if (!('Notification' in window)) return alert('OS通知非対応です');
