@@ -1,6 +1,67 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js">
+    // --- 優しい警告音（Web Audio API）---
+const AudioContext = window.AudioContext || window.webkitAudioContext;
+const audioCtx = new AudioContext();
+function playGentleChime() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5 (ド)
+  osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); // E5 (ミ)
+
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1); // 優しくフェードイン
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); // ゆっくり消える
+
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 1.5);
+}
+
+// --- ESP32 連携（MQTT）と5秒タイマー処理 ---
+const mqttClient = mqtt.connect('wss://broker.hivemq.com:8443/mqtt');
+const myTopic = "kosen/hoiku/esp32_light_12345"; // 他の人と被らないよう適当な数字に変えてください
+
+let hardwareLightTimer = null;
+
+mqttClient.on('connect', () => {
+  console.log("MQTTブローカーに接続しました");
+  mqttClient.subscribe(myTopic);
+  document.getElementById("lightLoc1").textContent = "ESP接続 💡";
+});
+
+mqttClient.on('message', (topic, message) => {
+  if (!state.isInUse) { // 見守り中（お休み中ではない）場合のみ動く
+    const payload = message.toString();
+
+    if (payload === "LIGHT_ON") {
+      // 一定照度以上になったらタイマースタート
+      if (!hardwareLightTimer) {
+        addFriendlyHistory("💡 電気がつきました（5秒後に通知します）");
+        hardwareLightTimer = setTimeout(() => {
+          playGentleChime();
+          triggerAlert("電気がつけっぱなしです！", "実際のセンサーが5秒間、光を検知しました");
+        }, 5000);
+      }
+    } else if (payload === "LIGHT_OFF") {
+      // 一定照度以下になったら警告とタイマーを解除
+      if (hardwareLightTimer) {
+        clearTimeout(hardwareLightTimer);
+        hardwareLightTimer = null;
+      }
+      if (state.alertActive) {
+        acknowledgeAlert(); // 警告を解除して元の画面に戻す
+        addFriendlyHistory("🌑 電気が消えたため、警告を自動解除しました");
+      }
+    }
+  }
+});
+  </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ほいくえん見守りアプリ (Beta)</title>
