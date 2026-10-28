@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ほいくえん見守りアプリ (Beta)</title>
+  <title>ほいくえん見守りアプリ (v2.2.0)</title>
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -23,27 +23,29 @@
     .weather-widget { font-size: 0.75rem; color: var(--primary); font-weight: bold; background: #e0e7ff; padding: 3px 8px; border-radius: 6px; display: inline-block; width: fit-content; }
     .header-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
     .clock { font-size: 0.85rem; font-weight: bold; color: var(--text); font-variant-numeric: tabular-nums; }
-    .btn-update { font-size: 0.7rem; background: #f1f5f9; color: #475569; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; font-weight: bold; }
+    .btn-update { font-size: 0.7rem; background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 99px; border: 1px solid #a5b4fc; cursor: pointer; font-weight: bold; }
 
     main { padding: 14px; display: flex; flex-direction: column; gap: 14px; }
     .card { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
     .section-title { font-size: 0.85rem; color: var(--sub); font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
-    .btn-big-mode { width: 100%; min-height: 80px; border-radius: 16px; border: none; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    /* いまの状態がひと目でわかる巨大スイッチ */
+    .btn-big-mode { width: 100%; min-height: 92px; border-radius: 16px; border: none; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; transition: 0.2s; padding: 12px; }
     .btn-big-mode:active { transform: scale(0.97); }
-    .btn-big-mode.finished { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
-    .btn-big-mode.in-use { background: #f1f5f9; color: var(--text); border: 2px solid var(--border); box-shadow: none; }
-    .mode-subtext { font-size: 0.75rem; font-weight: normal; opacity: 0.9; }
+    .btn-big-mode.mode-off { background: #e2e8f0; color: #334155; border: 3px solid #cbd5e1; }
+    .btn-big-mode.mode-on { background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: 3px solid #86efac; box-shadow: 0 6px 16px rgba(22,163,74,0.3); }
+    .mode-main-label { font-size: 1.3rem; font-weight: 900; letter-spacing: 0.02em; }
+    .mode-subtext { font-size: 0.8rem; font-weight: bold; opacity: 0.95; }
+    .mode-tap-hint { font-size: 0.72rem; background: rgba(0,0,0,0.12); padding: 3px 10px; border-radius: 99px; margin-top: 2px; }
 
     .hero-banner { text-align: center; padding: 20px 16px; border-radius: 16px; transition: all 0.2s; border: 2px solid transparent; }
     .hero-banner.safe { background: var(--safe-bg); border-color: #86efac; color: #14532d; }
     .hero-banner.danger { background: var(--danger-bg); border-color: #fca5a5; color: #7f1d1d; animation: pulse 1.2s infinite; }
-    .hero-banner.acked { background: var(--warn-bg); border-color: #fdba74; color: #7c2d12; }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); opacity: 0.92; } }
     .hero-icon { font-size: 2.4rem; margin-bottom: 6px; }
     .hero-title { font-size: 1.25rem; font-weight: bold; margin-bottom: 4px; }
     .hero-sub { font-size: 0.85rem; opacity: 0.85; }
-    .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
+    .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; box-shadow: 0 4px 10px rgba(220,38,38,0.3); }
     .btn-stop-sound:disabled { display: none; }
 
     .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -64,13 +66,16 @@
     .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; }
     .history-item { font-size: 0.85rem; padding: 8px 10px; background: #f8fafc; border-radius: 8px; display: flex; gap: 10px; align-items: center; border-left: 4px solid #cbd5e1; }
     .history-item.alert { border-left-color: var(--danger); background: #fef2f2; font-weight: bold; }
+    
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
     .modal-overlay.show { display: flex; }
     .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; max-height: 80vh; overflow-y: auto; }
     .patch-note { margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px dashed var(--border); }
-    .patch-note h3 { font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; }
-    .patch-note ul { padding-left: 20px; font-size: 0.85rem; line-height: 1.5; color: var(--text); }
+    .patch-note h3 { font-size: 1.05rem; color: var(--primary); margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .patch-badge { font-size: 0.7rem; background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 99px; }
+    .patch-note ul { padding-left: 20px; font-size: 0.85rem; line-height: 1.6; color: var(--text); }
     .btn-close { background: var(--text); color: white; width: 100%; padding: 12px; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; cursor: pointer; }
+    
     .dev-toggle { margin-top: 4px; display: flex; align-items: center; gap: 4px; font-size: 0.7rem; background: #f1f5f9; padding: 4px 8px; border-radius: 99px; border: 1px solid var(--border); cursor: pointer; }
     body.dev-mode .dev-toggle { background: #1e293b; color: #38bdf8; border-color: #0284c7; font-weight: bold; }
     .dev-panel { background: #0f172a; color: #f8fafc; border: 2px solid #38bdf8; }
@@ -94,21 +99,28 @@
 </header>
 
 <main>
+  <!-- アラート看板 -->
   <div class="hero-banner safe" id="heroBanner">
     <div class="hero-icon" id="heroIcon">😊</div>
     <div class="hero-title" id="heroTitle">いま異常はありません</div>
-    <div class="hero-sub" id="heroSub">すべて正常に見守り中です</div>
+    <div class="hero-sub" id="heroSub">すべて正常です</div>
     <button class="btn-stop-sound" id="btnAck" onclick="acknowledgeAlert()" disabled>🔕 通知音を止めて「確認済み」にする</button>
   </div>
 
+  <!-- 今の状態がひと目でわかる巨大スイッチ -->
   <div class="card">
-    <div class="section-title">トイレ・水回りの見守り</div>
-    <button class="btn-big-mode in-use" id="btnMode" onclick="toggleUsageMode()">
-      <div>⏸️ 見守りをお休み中</div>
-      <div class="mode-subtext">いま誰かが使っています（通知は鳴りません）</div>
+    <div class="section-title">
+      <span>🚽 トイレ・水回りの見守り状態</span>
+      <span style="font-size:0.75rem; color:var(--primary);">ボタンを押して切替</span>
+    </div>
+    <button class="btn-big-mode mode-off" id="btnMode" onclick="toggleUsageMode()">
+      <div class="mode-main-label">⏸️ いま：見守り OFF</div>
+      <div class="mode-subtext">トイレ利用中（電気がついていても通知しません）</div>
+      <div class="mode-tap-hint">👉 使い終わったらタップして「ON」にする</div>
     </button>
   </div>
 
+  <!-- 各ばしょの今のようす -->
   <div class="card">
     <div class="section-title">👀 各ばしょの今のようす</div>
     <div class="status-grid">
@@ -121,9 +133,9 @@
       </div>
       
       <div class="status-item">
-        <div class="status-header">💡 電気</div>
+        <div class="status-header">💡 電気（トイレは実機連動）</div>
         <div class="multi-loc-list">
-          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-off">GAS待機中 💡</span></div>
+          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-off">待機中 💡</span></div>
           <div class="loc-row"><span>手洗い場</span><span id="lightLoc2" class="state-off">OFF 🌑</span></div>
         </div>
       </div>
@@ -157,20 +169,36 @@
   <div class="card dev-panel dev-only">
     <div class="section-title" style="color:#38bdf8;">🛠️ 実験検証パネル (担当5)</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
-      <button class="btn-dev" onclick="simForgotLight()">⚠️ トイレ消し忘れ(30s)</button>
-      <button class="btn-dev" onclick="simForgotWater()">⚠️ 水道出しっぱなし(10s)</button>
+      <button class="btn-dev" onclick="simForgotLight()">⚠️ トイレ消し忘れ発火</button>
+      <button class="btn-dev" onclick="simForgotWater()">⚠️ 水道出しっぱなし発火</button>
     </div>
     <button class="btn-dev" style="width:100%; background:#0284c7;" onclick="enableAndTestBgNotify()">📲 5秒後にバックグラウンド通知テスト</button>
   </div>
 </main>
 
+<!-- アプデ履歴モーダル -->
 <div class="modal-overlay" id="updateModal">
   <div class="modal-content">
-    <h2 style="margin-bottom:16px;">📢 アップデート情報</h2>
+    <h2 style="margin-bottom:16px;">📢 アップデート履歴</h2>
     <div class="patch-note">
-      <h3>v1.2.1 (GAS連携版)</h3>
+      <h3><span>v2.2.0</span><span class="patch-badge">最新</span></h3>
       <ul>
-        <li><b>通信の安定化:</b> ESP32との連携をGAS経由に変更し、通信ブロックの問題を解決しました。</li>
+        <li><b>センサーとの連携を開始:</b> 実際の光センサーと連携し、見守りON時に電気が5秒間つきっぱなしになると自動で警告が出るようになりました！</li>
+        <li><b>消すまで鳴るサブアラームを追加:</b> 最初の通知音のあと、確認ボタンを押すか電気が消えるまで優しいサブアラームが定期的に鳴り続けるようになりました。</li>
+        <li><b>見守りスイッチの改善:</b> いま「見守りON」なのか「OFF」なのかがひと目でわかる表示に改善しました。</li>
+      </ul>
+    </div>
+    <div class="patch-note">
+      <h3><span>v1.1.1</span></h3>
+      <ul>
+        <li>外の天気（八王子市）のリアルタイム表示を追加。</li>
+        <li>電気・水道の複数場所ステータス表示と「音楽」判定を追加。</li>
+      </ul>
+    </div>
+    <div class="patch-note" style="border:none; margin-bottom:0; padding-bottom:0;">
+      <h3><span>v1.1.0</span></h3>
+      <ul>
+        <li>スマホのマイクを使ったリアルタイム音声判定機能を追加。</li>
       </ul>
     </div>
     <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
@@ -182,24 +210,63 @@
 
   const state = { isInUse: true, alertActive: false };
 
-  // --- 音声関連（Web Audio API） ---
+  // --- 音声関連（主アラーム＋消すまで鳴り続けるサブアラーム） ---
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   const audioCtx = new AudioContext();
+  let subAlarmInterval = null;
 
+  // 主アラーム（最初のポローン♪）
   function playGentleChime() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
-    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); 
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // ド
+    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); // ミ
     gain.gain.setValueAtTime(0, audioCtx.currentTime);
-    gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1); 
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); 
+    gain.gain.linearRampToValueAtTime(0.35, audioCtx.currentTime + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.4);
     osc.connect(gain);
     gain.connect(audioCtx.destination);
     osc.start();
-    osc.stop(audioCtx.currentTime + 1.5);
+    osc.stop(audioCtx.currentTime + 1.4);
+  }
+
+  // サブアラーム（消すまで2.5秒おきに鳴る優しいピポッ♪）
+  function playSubBeep() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(587.33, now);        // レ
+    osc.frequency.setValueAtTime(440.00, now + 0.18); // ラ
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.2, now + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.008, now + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
+
+  function startAlarmSoundLoop() {
+    stopAlarmSoundLoop();
+    try { playGentleChime(); } catch(e) {}
+    subAlarmInterval = setInterval(() => {
+      if (state.alertActive) {
+        try { playSubBeep(); } catch(e) {}
+      } else {
+        stopAlarmSoundLoop();
+      }
+    }, 2500); // 2.5秒ごとにサブアラームを鳴らす
+  }
+
+  function stopAlarmSoundLoop() {
+    if (subAlarmInterval) {
+      clearInterval(subAlarmInterval);
+      subAlarmInterval = null;
+    }
   }
 
   // --- GAS連携 (ポーリング) ---
@@ -208,44 +275,45 @@
   let lastGasState = "";
 
   setInterval(async () => {
-    if (!state.isInUse) { // 見守り中のみ動作
-      try {
-        const response = await fetch(gasUrl);
-        const payload = await response.text();
-        
-        if (payload !== lastGasState) {
-          lastGasState = payload;
-          
-          if (payload === "LIGHT_ON") {
-            document.getElementById("lightLoc1").textContent = "ON 💡";
-            document.getElementById("lightLoc1").className = "state-on";
-            
-            if (!hardwareLightTimer) {
-              addFriendlyHistory("💡 トイレの電気がつきました（5秒後に通知）");
-              hardwareLightTimer = setTimeout(() => {
-                triggerAlert("電気がつけっぱなしです！", "実際のセンサーが光を検知しました");
-                try { playGentleChime(); } catch(e) {}
-              }, 5000);
-            }
-          } else if (payload === "LIGHT_OFF") {
-            document.getElementById("lightLoc1").textContent = "OFF 🌑";
-            document.getElementById("lightLoc1").className = "state-off";
-            
-            if (hardwareLightTimer) {
-              clearTimeout(hardwareLightTimer);
+    try {
+      const response = await fetch(gasUrl);
+      const payload = (await response.text()).trim();
+
+      // 画面のON/OFF表示自体はいつでもリアルタイムに更新する
+      if (payload === "LIGHT_ON") {
+        document.getElementById("lightLoc1").textContent = "ON 💡";
+        document.getElementById("lightLoc1").className = "state-on";
+      } else if (payload === "LIGHT_OFF") {
+        document.getElementById("lightLoc1").textContent = "OFF 🌑";
+        document.getElementById("lightLoc1").className = "state-off";
+      }
+
+      // 見守りON（isInUse === false）のときだけ5秒タイマー＆警告を動かす
+      if (!state.isInUse) {
+        if (payload === "LIGHT_ON") {
+          if (!hardwareLightTimer && !state.alertActive) {
+            addFriendlyHistory("💡 トイレの電気がつきました（5秒後に通知）");
+            hardwareLightTimer = setTimeout(() => {
               hardwareLightTimer = null;
-            }
-            if (state.alertActive) {
-              acknowledgeAlert(); 
-              addFriendlyHistory("🌑 電気が消えたため、警告を解除しました");
-            }
+              triggerAlert("電気がつけっぱなしです！", "トイレの電気がついたままになっています");
+            }, 5000);
+          }
+        } else if (payload === "LIGHT_OFF") {
+          if (hardwareLightTimer) {
+            clearTimeout(hardwareLightTimer);
+            hardwareLightTimer = null;
+          }
+          if (state.alertActive) {
+            acknowledgeAlert();
+            addFriendlyHistory("🌑 電気が消えたため、警告を自動解除しました");
           }
         }
-      } catch (err) {
-        console.error("GAS取得エラー", err);
       }
+      lastGasState = payload;
+    } catch (err) {
+      console.error("GAS取得エラー", err);
     }
-  }, 2500);
+  }, 2000);
 
   // --- 天気・時計 ---
   async function fetchWeather() {
@@ -293,6 +361,10 @@
     document.getElementById("heroSub").textContent = sub;
     document.getElementById("btnAck").disabled = false;
     addFriendlyHistory(`⚠️ ${title}`, true);
+    
+    // 主アラーム＋消すまで鳴るサブアラームを開始
+    startAlarmSoundLoop();
+
     if ('Notification' in window && Notification.permission === 'granted') {
       navigator.serviceWorker.ready.then(reg => reg.showNotification(`🚨 ${title}`, { body: sub, icon: 'https://cdn-icons-png.flaticon.com/512/2991/2991148.png' }));
     }
@@ -300,26 +372,50 @@
 
   function acknowledgeAlert() {
     state.alertActive = false;
+    stopAlarmSoundLoop(); // サブアラームを停止
     document.getElementById("heroBanner").className = "hero-banner safe";
     document.getElementById("heroIcon").textContent = "😊";
     document.getElementById("heroTitle").textContent = "いま異常はありません";
-    document.getElementById("heroSub").textContent = "すべて正常に見守り中です";
+    document.getElementById("heroSub").textContent = "すべて正常です";
     document.getElementById("btnAck").disabled = true;
-    addFriendlyHistory("🔔 通知音を止めて「確認済み」にしました");
+    addFriendlyHistory("🔕 通知音を止めてリセットしました");
   }
 
+  // いま何の状態なのかが一瞬でわかるスイッチ切替
   function toggleUsageMode() {
-    if (audioCtx.state === 'suspended') audioCtx.resume(); 
+    if (audioCtx.state === 'suspended') audioCtx.resume();
     state.isInUse = !state.isInUse;
     const btn = document.getElementById("btnMode");
+    
     if (state.isInUse) {
-      btn.className = "btn-big-mode in-use";
-      btn.innerHTML = "<div>⏸️ 見守りをお休み中</div><div class='mode-subtext'>いま誰かが使っています（通知は鳴りません）</div>";
-      addFriendlyHistory("⏸️ 見守りをお休みしました");
+      // 見守りOFF（利用中）
+      if (hardwareLightTimer) { clearTimeout(hardwareLightTimer); hardwareLightTimer = null; }
+      if (state.alertActive) acknowledgeAlert();
+      btn.className = "btn-big-mode mode-off";
+      btn.innerHTML = `
+        <div class="mode-main-label">⏸️ いま：見守り OFF</div>
+        <div class="mode-subtext">トイレ利用中（電気がついていても通知しません）</div>
+        <div class="mode-tap-hint">👉 使い終わったらタップして「ON」にする</div>
+      `;
+      addFriendlyHistory("⏸️ 見守りを「OFF（利用中）」にしました");
     } else {
-      btn.className = "btn-big-mode finished";
-      btn.innerHTML = "<div>▶️ 見守りを開始する</div><div class='mode-subtext'>電気が30秒(ESPは5秒)ついたままだとお知らせ</div>";
-      addFriendlyHistory("▶️ 見守りを開始しました");
+      // 見守りON（監視中）
+      btn.className = "btn-big-mode mode-on";
+      btn.innerHTML = `
+        <div class="mode-main-label">👀 いま：見守り ON（監視中！）</div>
+        <div class="mode-subtext">電気が5秒間つきっぱなしになると警報が鳴ります</div>
+        <div class="mode-tap-hint">👉 トイレを使うときはタップして「OFF」にする</div>
+      `;
+      addFriendlyHistory("👀 見守りを「ON（監視中）」にしました");
+      
+      // すでに電気がONのまま見守りONにした場合も即タイマースタート
+      if (lastGasState === "LIGHT_ON" && !hardwareLightTimer) {
+        addFriendlyHistory("💡 電気がついているため5秒カウント開始");
+        hardwareLightTimer = setTimeout(() => {
+          hardwareLightTimer = null;
+          triggerAlert("電気がつけっぱなしです！", "トイレの電気がついたままになっています");
+        }, 5000);
+      }
     }
   }
 
@@ -364,13 +460,11 @@
 
   function simForgotLight() {
     if (state.isInUse) toggleUsageMode();
-    triggerAlert("電気がつけっぱなしです！", "トイレの電気が30秒以上ついています");
-    playGentleChime();
+    triggerAlert("電気がつけっぱなしです！", "トイレの電気がついたままになっています");
   }
   function simForgotWater() {
     if (state.isInUse) toggleUsageMode();
-    triggerAlert("お水が出しっぱなしです！", "手洗い場の水が10秒以上流れています");
-    playGentleChime();
+    triggerAlert("お水が出しっぱなしです！", "手洗い場の水が流れたままになっています");
   }
   async function enableAndTestBgNotify() {
     if (!('Notification' in window)) return alert('OS通知非対応です');
