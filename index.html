@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ほいくえん見守りアプリ (Beta)</title>
   <link rel="manifest" href="manifest.json">
-  <!-- MQTT通信用のライブラリを追加 -->
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     :root {
       --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --sub: #64748b;
@@ -19,7 +17,6 @@
     .dev-only { display: none !important; }
     body.dev-mode .dev-only { display: block !important; }
     
-    /* ヘッダー・時計・天気 */
     header { background: #ffffff; border-bottom: 2px solid var(--border); padding: 12px 16px; position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; }
     .header-left { display: flex; flex-direction: column; gap: 4px; }
     .app-title { font-size: 1.05rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
@@ -32,14 +29,12 @@
     .card { background: var(--card); border-radius: 14px; padding: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid var(--border); }
     .section-title { font-size: 0.85rem; color: var(--sub); font-weight: bold; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
-    /* 見守りスイッチ */
     .btn-big-mode { width: 100%; min-height: 80px; border-radius: 16px; border: none; font-size: 1.15rem; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; transition: 0.2s; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .btn-big-mode:active { transform: scale(0.97); }
     .btn-big-mode.finished { background: linear-gradient(135deg, #0284c7, #2563eb); color: white; }
     .btn-big-mode.in-use { background: #f1f5f9; color: var(--text); border: 2px solid var(--border); box-shadow: none; }
     .mode-subtext { font-size: 0.75rem; font-weight: normal; opacity: 0.9; }
 
-    /* アラートバナー */
     .hero-banner { text-align: center; padding: 20px 16px; border-radius: 16px; transition: all 0.2s; border: 2px solid transparent; }
     .hero-banner.safe { background: var(--safe-bg); border-color: #86efac; color: #14532d; }
     .hero-banner.danger { background: var(--danger-bg); border-color: #fca5a5; color: #7f1d1d; animation: pulse 1.2s infinite; }
@@ -51,7 +46,6 @@
     .btn-stop-sound { margin-top: 14px; width: 100%; background: var(--danger); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; }
     .btn-stop-sound:disabled { display: none; }
 
-    /* ステータスグリッド */
     .status-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .status-item { background: #f8fafc; border-radius: 12px; padding: 12px; border: 1px solid var(--border); }
     .status-item.full { grid-column: span 2; }
@@ -59,7 +53,6 @@
     .status-main { display: flex; align-items: center; gap: 10px; }
     .status-emoji { font-size: 1.8rem; }
     
-    /* 複数場所リスト */
     .multi-loc-list { display: flex; flex-direction: column; gap: 6px; width: 100%; font-size: 0.85rem; }
     .loc-row { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); }
     .loc-row .state-on { color: var(--warn); font-weight: bold; }
@@ -68,7 +61,6 @@
     .btn-mic { background: #10b981; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: bold; width: 100%; margin-top: 10px; cursor: pointer; }
     .btn-mic.active { background: #e2e8f0; color: #64748b; cursor: default; }
 
-    /* 履歴・モーダル・開発者 */
     .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; max-height: 160px; overflow-y: auto; }
     .history-item { font-size: 0.85rem; padding: 8px 10px; background: #f8fafc; border-radius: 8px; display: flex; gap: 10px; align-items: center; border-left: 4px solid #cbd5e1; }
     .history-item.alert { border-left-color: var(--danger); background: #fef2f2; font-weight: bold; }
@@ -102,7 +94,6 @@
 </header>
 
 <main>
-  <!-- アラート看板 -->
   <div class="hero-banner safe" id="heroBanner">
     <div class="hero-icon" id="heroIcon">😊</div>
     <div class="hero-title" id="heroTitle">いま異常はありません</div>
@@ -110,7 +101,6 @@
     <button class="btn-stop-sound" id="btnAck" onclick="acknowledgeAlert()" disabled>🔕 通知音を止めて「確認済み」にする</button>
   </div>
 
-  <!-- 見守りスイッチ -->
   <div class="card">
     <div class="section-title">トイレ・水回りの見守り</div>
     <button class="btn-big-mode in-use" id="btnMode" onclick="toggleUsageMode()">
@@ -119,11 +109,9 @@
     </button>
   </div>
 
-  <!-- 各ばしょのようす -->
   <div class="card">
     <div class="section-title">👀 各ばしょの今のようす</div>
     <div class="status-grid">
-      <!-- 門 -->
       <div class="status-item full">
         <div class="status-header">🚪 門・出入口の通過</div>
         <div class="status-main">
@@ -132,16 +120,14 @@
         </div>
       </div>
       
-      <!-- 電気 -->
       <div class="status-item">
         <div class="status-header">💡 電気</div>
         <div class="multi-loc-list">
-          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-off">OFF 🌑</span></div>
+          <div class="loc-row"><span>トイレ</span><span id="lightLoc1" class="state-off">GAS待機中 💡</span></div>
           <div class="loc-row"><span>手洗い場</span><span id="lightLoc2" class="state-off">OFF 🌑</span></div>
         </div>
       </div>
 
-      <!-- 水道 -->
       <div class="status-item">
         <div class="status-header">🚰 水道</div>
         <div class="multi-loc-list">
@@ -150,7 +136,6 @@
         </div>
       </div>
 
-      <!-- 音 -->
       <div class="status-item full">
         <div class="status-header">🎵 お部屋のようす（スマホマイク連動）</div>
         <div class="status-main">
@@ -162,7 +147,6 @@
     </div>
   </div>
 
-  <!-- 履歴 -->
   <div class="card">
     <div class="section-title">📋 最近の出来事メモ</div>
     <ul class="history-list" id="friendlyHistory">
@@ -170,7 +154,6 @@
     </ul>
   </div>
 
-  <!-- 開発者パネル -->
   <div class="card dev-panel dev-only">
     <div class="section-title" style="color:#38bdf8;">🛠️ 実験検証パネル (担当5)</div>
     <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px;">
@@ -181,14 +164,13 @@
   </div>
 </main>
 
-<!-- アプデ履歴モーダル -->
 <div class="modal-overlay" id="updateModal">
   <div class="modal-content">
     <h2 style="margin-bottom:16px;">📢 アップデート情報</h2>
     <div class="patch-note">
-      <h3>v1.2.0 (ESP32連携)</h3>
+      <h3>v1.2.1 (GAS連携版)</h3>
       <ul>
-        <li><b>ESP32連動:</b> トイレの明るさセンサーと連動しました。光を検知して5秒後に警告します。</li>
+        <li><b>通信の安定化:</b> ESP32との連携をGAS経由に変更し、通信ブロックの問題を解決しました。</li>
       </ul>
     </div>
     <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
@@ -209,8 +191,8 @@
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // ド
-    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); // ミ
+    osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); 
+    osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.3); 
     gain.gain.setValueAtTime(0, audioCtx.currentTime);
     gain.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.1); 
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.5); 
@@ -220,52 +202,50 @@
     osc.stop(audioCtx.currentTime + 1.5);
   }
 
-  // --- MQTT連携 (ESP32) ---
-  const mqttClient = mqtt.connect('wss://broker.hivemq.com:8443/mqtt');
-  const myTopic = "kosen/hoiku/esp32_light_12345";
+  // --- GAS連携 (ポーリング) ---
+  const gasUrl = "https://script.google.com/macros/s/AKfycby2zjdxpoYufVbzLhNkcAVZFqA1bOsAOFAVe4wZSpjsOlrcPqFMyc_MqlH2RoYxQnIe/exec";
   let hardwareLightTimer = null;
+  let lastGasState = "";
 
-  mqttClient.on('connect', () => {
-    console.log("MQTT connected");
-    mqttClient.subscribe(myTopic);
-    // 接続成功したらUIを更新
-    const light1 = document.getElementById("lightLoc1");
-    light1.textContent = "ESP接続 💡";
-    light1.className = "state-on";
-  });
-
-  mqttClient.on('message', (topic, message) => {
-    const payload = message.toString();
-    console.log("MQTT Received:", payload); // デバッグ用
-
-    if (!state.isInUse) { // 見守り中(お休み中ではない)のみ動作
-      if (payload === "LIGHT_ON") {
-        document.getElementById("lightLoc1").textContent = "ON 💡";
-        document.getElementById("lightLoc1").className = "state-on";
+  setInterval(async () => {
+    if (!state.isInUse) { // 見守り中のみ動作
+      try {
+        const response = await fetch(gasUrl);
+        const payload = await response.text();
         
-        if (!hardwareLightTimer) {
-          addFriendlyHistory("💡 トイレの電気がつきました（5秒後に通知）");
-          hardwareLightTimer = setTimeout(() => {
-            // エラー停止を防ぐため通知を先に出す
-            triggerAlert("電気がつけっぱなしです！", "実際のセンサーが光を検知しました");
-            try { playGentleChime(); } catch(e) {}
-          }, 5000);
+        if (payload !== lastGasState) {
+          lastGasState = payload;
+          
+          if (payload === "LIGHT_ON") {
+            document.getElementById("lightLoc1").textContent = "ON 💡";
+            document.getElementById("lightLoc1").className = "state-on";
+            
+            if (!hardwareLightTimer) {
+              addFriendlyHistory("💡 トイレの電気がつきました（5秒後に通知）");
+              hardwareLightTimer = setTimeout(() => {
+                triggerAlert("電気がつけっぱなしです！", "実際のセンサーが光を検知しました");
+                try { playGentleChime(); } catch(e) {}
+              }, 5000);
+            }
+          } else if (payload === "LIGHT_OFF") {
+            document.getElementById("lightLoc1").textContent = "OFF 🌑";
+            document.getElementById("lightLoc1").className = "state-off";
+            
+            if (hardwareLightTimer) {
+              clearTimeout(hardwareLightTimer);
+              hardwareLightTimer = null;
+            }
+            if (state.alertActive) {
+              acknowledgeAlert(); 
+              addFriendlyHistory("🌑 電気が消えたため、警告を解除しました");
+            }
+          }
         }
-      } else if (payload === "LIGHT_OFF") {
-        document.getElementById("lightLoc1").textContent = "OFF 🌑";
-        document.getElementById("lightLoc1").className = "state-off";
-        
-        if (hardwareLightTimer) {
-          clearTimeout(hardwareLightTimer);
-          hardwareLightTimer = null;
-        }
-        if (state.alertActive) {
-          acknowledgeAlert(); 
-          addFriendlyHistory("🌑 電気が消えたため、警告を解除しました");
-        }
+      } catch (err) {
+        console.error("GAS取得エラー", err);
       }
     }
-  });
+  }, 2500);
 
   // --- 天気・時計 ---
   async function fetchWeather() {
@@ -329,7 +309,7 @@
   }
 
   function toggleUsageMode() {
-    if (audioCtx.state === 'suspended') audioCtx.resume(); // 音声再生の許可をブラウザから得る
+    if (audioCtx.state === 'suspended') audioCtx.resume(); 
     state.isInUse = !state.isInUse;
     const btn = document.getElementById("btnMode");
     if (state.isInUse) {
