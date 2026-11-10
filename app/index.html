@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ほいくえん見守りアプリ (v2.4.0)</title>
+  <title>ほいくえん見守りアプリ (v2.4.1)</title>
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -68,6 +68,17 @@
     .history-item { font-size: 0.85rem; padding: 8px 10px; background: #f8fafc; border-radius: 8px; display: flex; gap: 10px; align-items: center; border-left: 4px solid #cbd5e1; }
     .history-item.alert { border-left-color: var(--danger); background: #fef2f2; font-weight: bold; }
     
+    /* ご意見用大型ボタン */
+    .btn-feedback-large {
+      width: 100%; background: #fef3c7; color: #92400e; border: 2px solid #fcd34d; padding: 16px; border-radius: 16px;
+      display: flex; align-items: center; gap: 14px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.2s;
+    }
+    .btn-feedback-large:active { transform: scale(0.98); }
+    .feedback-icon { font-size: 2rem; }
+    .feedback-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+    .feedback-title { font-size: 1.05rem; font-weight: bold; }
+    .feedback-sub { font-size: 0.75rem; opacity: 0.8; }
+
     .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 100; padding: 20px; }
     .modal-overlay.show { display: flex; }
     .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 16px; padding: 20px; max-height: 80vh; overflow-y: auto; }
@@ -94,7 +105,6 @@
   <div class="header-right">
     <div class="clock" id="clock">----年--月--日(--) --:--:--</div>
     <div style="display:flex; gap:6px;">
-      <button class="btn-update" style="background:#fef3c7; color:#92400e; border-color:#fcd34d;" onclick="toggleModal('feedbackModal')">💬 ご意見</button>
       <button class="btn-update" onclick="toggleModal('updateModal')">📢 アプデ</button>
       <label class="dev-toggle" onclick="toggleDevMode()"><span>🔧 開発者</span></label>
     </div>
@@ -125,7 +135,7 @@
     <div class="section-title">👀 各ばしょの今のようす</div>
     <div class="status-grid">
       
-      <!-- 園児立ち入り禁止区域（人感センサーESP32連動） -->
+      <!-- 園児立ち入り禁止区域 -->
       <div class="status-item" id="dangerZoneCard">
         <div class="status-header">
           <span>⛔ 園児立ち入り禁止区域（危ない場所）</span>
@@ -151,7 +161,7 @@
         </div>
       </div>
       
-      <!-- 電気 (トイレ照度センサーESP32連動) -->
+      <!-- 電気 -->
       <div class="status-item">
         <div class="status-header"><span>💡 電気（トイレは実機連動）</span></div>
         <div class="multi-loc-list">
@@ -197,6 +207,15 @@
     </ul>
   </div>
 
+  <!-- 大型のご意見ボタン -->
+  <button class="btn-feedback-large" onclick="toggleModal('feedbackModal')">
+    <span class="feedback-icon">💬</span>
+    <div class="feedback-text">
+      <div class="feedback-title">ご意見・ご要望はこちら</div>
+      <div class="feedback-sub">展示の感想や「こんな機能がほしい」をお寄せください</div>
+    </div>
+  </button>
+
   <div class="card dev-panel dev-only">
     <div class="section-title" style="color:#38bdf8;">🛠️ 実験検証・ステータス詳細 (担当5)</div>
     <div class="dev-status-box" id="devStatusBox">読込中...</div>
@@ -214,47 +233,9 @@
   <div class="modal-content">
     <h2 style="margin-bottom:16px;">📢 アップデート履歴</h2>
     <div class="patch-note">
-      <h3><span>v2.4.0</span><span class="patch-badge">最新</span></h3>
+      <h3><span>v2.4.1</span><span class="patch-badge">最新</span></h3>
       <ul>
-        <li><b>ご意見・ご要望フォームの追加:</b> アプリ画面上から直接フィードバックを送信し、Googleスプレッドシートへ自動記録する機能を追加しました。</li>
-      </ul>
-    </div>
-    <div class="patch-note">
-      <h3><span>v2.3.0</span></h3>
-      <ul>
-        <li><b>人感センサー（2台目ESP32）との連携を追加:</b> 既存の照度センサー回路とは別系統の人感センサーシステムを統合しました。</li>
-        <li><b>「園児立ち入り禁止区域（危ない場所）」の新設:</b> 見守りスイッチのON/OFFに関わらず人を検知すると即座に警報が鳴る常時監視に対応しました。</li>
-      </ul>
-    </div>
-    <div class="patch-note">
-      <h3><span>v2.2.1</span></h3>
-      <ul>
-        <li><b>UIレイアウトの最適化:</b> 電気と水道のステータスを縦に広げて見やすく改善。</li>
-        <li><b>通信状態の可視化と開発者モニター:</b> ESP32(GAS)との通信状態表示と、開発者用の厳密な内部変数モニターを追加。</li>
-      </ul>
-    </div>
-    <div class="patch-note">
-      <h3><span>v2.2.0</span></h3>
-      <ul>
-        <li><b>照度センサー連携とサブアラーム:</b> 光センサーと連動し、主アラーム後に消すまで鳴り続けるサブアラームを追加。スイッチのON/OFF表示を改善。</li>
-      </ul>
-    </div>
-    <div class="patch-note">
-      <h3><span>v1.2.x</span></h3>
-      <ul>
-        <li><b>GAS通信化:</b> Google Apps Script (GAS) 経由での安定した定期通信に変更。</li>
-      </ul>
-    </div>
-    <div class="patch-note">
-      <h3><span>v1.1.x</span></h3>
-      <ul>
-        <li><b>マイク連動・天気など:</b> スマホマイクを使った1秒間隔の音声判定、八王子市の天気表示、複数場所の枠組みを追加。</li>
-      </ul>
-    </div>
-    <div class="patch-note" style="border:none; margin-bottom:0; padding-bottom:0;">
-      <h3><span>v1.0.0</span></h3>
-      <ul>
-        <li><b>初期ベータ公開:</b> Web技術を使ったアプリ化(PWA)、バックグラウンドOS通知の基礎を実装。</li>
+        <li><b>UI改善とバグ修正:</b> ご意見ボタンを画面下部に大きく配置しました。また、アプリ起動直後に前回の状態が残っていて一瞬アラートが鳴ってしまう問題を修正しました。</li>
       </ul>
     </div>
     <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
@@ -266,7 +247,7 @@
   <div class="modal-content">
     <h2 style="font-size:1.15rem; margin-bottom:10px; color:var(--text);">💬 ご意見・ご要望フォーム</h2>
     <p style="font-size:0.8rem; color:var(--sub); margin-bottom:14px; line-height:1.4;">
-      展示をご覧いただきありがとうございます！アプリの使いやすさや「こんな機能がほしい」など、率直なご感想をお聞かせください。
+      展示をご覧いただきありがとうございます！アプリの使いやすさや改善案など、率直なご感想をお聞かせください。
     </p>
 
     <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
@@ -292,7 +273,6 @@
 
   const state = { isInUse: true, alertActive: false };
 
-  // デバッグ・状態管理用変数
   let dbgAudioVol = 0, dbgAudioLow = 0, dbgAudioHigh = 0;
   let dbgGasRaw = "未受信";
   let dbgGasStatus = "待機中";
@@ -300,6 +280,7 @@
   let currentPirState = "DANGER_OFF";
   let lastPirState = "DANGER_OFF";
   let hardwareLightTimer = null;
+  let isFirstFetch = true; // 初回読み込みフラグ（起動時アラート防止用）
 
   // --- 音声関連 ---
   const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -352,7 +333,7 @@
     if (subAlarmInterval) { clearInterval(subAlarmInterval); subAlarmInterval = null; }
   }
 
-  // --- GAS連携 (照度センサー #1 ＆ 人感センサー #2 両対応ポーリング) ---
+  // --- GAS連携 ---
   const gasUrl = "https://script.google.com/macros/s/AKfycby2zjdxpoYufVbzLhNkcAVZFqA1bOsAOFAVe4wZSpjsOlrcPqFMyc_MqlH2RoYxQnIe/exec";
 
   setInterval(async () => {
@@ -373,14 +354,13 @@
       const t = new Date();
       const timeStr = `${String(t.getHours()).padStart(2,'0')}:${String(t.getMinutes()).padStart(2,'0')}:${String(t.getSeconds()).padStart(2,'0')}`;
 
-      // 通信ステータスの更新
       document.getElementById("espConnState").innerHTML = "🔵 通信OK";
       document.getElementById("espConnState").style.color = "var(--safe)";
       document.getElementById("espLastTime").textContent = timeStr;
       document.getElementById("pirConnState").innerHTML = "🔵 監視中";
       document.getElementById("pirConnState").style.color = "var(--safe)";
 
-      // ① 人感センサー（立ち入り禁止区域）の判定 ※常時監視
+      // ① 人感センサー（立ち入り禁止区域）の判定
       const dangerCard = document.getElementById("dangerZoneCard");
       if (currentPirState === "DANGER_ON") {
         dangerCard.classList.add("danger-zone-active");
@@ -392,7 +372,18 @@
         document.getElementById("pirLastDetected").textContent = timeStr;
 
         if (lastPirState !== "DANGER_ON") {
-          triggerAlert("立ち入り禁止区域に誰かが入りました！", "危ない場所の人感センサーが反応しました！すぐ確認してください！");
+          if (!isFirstFetch) {
+            // 通常のアラート発火（音＋通知）
+            triggerAlert("立ち入り禁止区域に誰かが入りました！", "危ない場所の人感センサーが反応しました！すぐ確認してください！");
+          } else {
+            // 初回読み込み時のゴーストアラート対策（UIだけ同期して音は鳴らさない）
+            state.alertActive = true;
+            document.getElementById("heroBanner").className = "hero-banner danger";
+            document.getElementById("heroIcon").textContent = "🚨";
+            document.getElementById("heroTitle").textContent = "前回からの立ち入り検知が残っています";
+            document.getElementById("heroSub").textContent = "安全が確認できたら通知を止めてください";
+            document.getElementById("btnAck").disabled = false;
+          }
         }
       } else {
         dangerCard.classList.remove("danger-zone-active");
@@ -402,7 +393,9 @@
         document.getElementById("pirBadge").textContent = "CLEAR";
         document.getElementById("pirBadge").className = "state-off";
       }
+      
       lastPirState = currentPirState;
+      isFirstFetch = false; // 初回処理完了
 
       // ② 照度センサー（トイレの電気）の判定
       if (currentLightState === "LIGHT_ON") {
@@ -449,31 +442,24 @@
     const btn = document.getElementById("btnSendFeedback");
     
     const text = bodyInput.value.trim();
-    if (!text) {
-      alert("ご意見・ご要望を入力してください。");
-      return;
-    }
+    if (!text) { alert("ご意見・ご要望を入力してください。"); return; }
 
-    btn.disabled = true;
-    btn.textContent = "送信中...";
+    btn.disabled = true; btn.textContent = "送信中...";
 
     try {
       const name = encodeURIComponent(nameInput.value.trim() || "匿名");
       const feedback = encodeURIComponent(text);
       const url = `${gasUrl}?feedback=${feedback}&name=${name}`;
-      
       await fetch(url, { method: "GET", mode: "no-cors" });
       
       alert("ご意見をお送りいただきありがとうございました！");
-      bodyInput.value = "";
-      nameInput.value = "";
+      bodyInput.value = ""; nameInput.value = "";
       toggleModal("feedbackModal");
       addFriendlyHistory("💬 ご意見・ご要望を送信しました");
     } catch (err) {
       alert("送信に失敗しました。通信環境をご確認ください。");
     } finally {
-      btn.disabled = false;
-      btn.textContent = "送信する 🚀";
+      btn.disabled = false; btn.textContent = "送信する 🚀";
     }
   }
 
@@ -481,21 +467,17 @@
   setInterval(() => {
     const box = document.getElementById("devStatusBox");
     box.textContent = `[システム制御変数]
-トイレ見守りON   : ${!state.isInUse} (false=利用中 / true=5秒監視)
-禁止区域監視     : 常時ON (見守りスイッチ非依存)
+トイレ見守りON   : ${!state.isInUse}
+禁止区域監視     : 常時ON
 アラート発動中   : ${state.alertActive}
 照度5秒タイマー  : ${hardwareLightTimer ? "カウント中" : "停止 (null)"}
+初回起動フラグ   : ${isFirstFetch}
 
 [GAS通信 / 2台のESP32状態]
 通信ステータス   : ${dbgGasStatus}
-ESP32#1 (照度)   : ${currentLightState} (LIGHT_ON=明 / LIGHT_OFF=暗)
-ESP32#2 (人感)   : ${currentPirState} (DANGER_ON=検知 / DANGER_OFF=安全)
-GAS生レスポンス  : ${dbgGasRaw}
-
-[マイク音声解析値] (1秒周期)
-音量レベル(Vol)  : ${dbgAudioVol.toFixed(1)} (10未満=無音 / 60超=騒音)
-低音域 / 高音域  : Low=${dbgAudioLow} / High=${dbgAudioHigh}
-AudioContext状態 : ${audioCtx.state}`;
+ESP32#1 (照度)   : ${currentLightState}
+ESP32#2 (人感)   : ${currentPirState}
+GAS生レスポンス  : ${dbgGasRaw}`;
   }, 1000);
 
   // --- 天気・時計 ---
@@ -572,19 +554,11 @@ AudioContext状態 : ${audioCtx.state}`;
       if (hardwareLightTimer) { clearTimeout(hardwareLightTimer); hardwareLightTimer = null; }
       if (state.alertActive) acknowledgeAlert();
       btn.className = "btn-big-mode mode-off";
-      btn.innerHTML = `
-        <div class="mode-main-label">⏸️ いま：見守り OFF</div>
-        <div class="mode-subtext">トイレ利用中（電気がついていても通知しません）</div>
-        <div class="mode-tap-hint">👉 使い終わったらタップして「ON」にする</div>
-      `;
+      btn.innerHTML = `<div class="mode-main-label">⏸️ いま：見守り OFF</div><div class="mode-subtext">トイレ利用中（電気がついていても通知しません）</div><div class="mode-tap-hint">👉 使い終わったらタップして「ON」にする</div>`;
       addFriendlyHistory("⏸️ トイレ見守りを「OFF（利用中）」にしました");
     } else {
       btn.className = "btn-big-mode mode-on";
-      btn.innerHTML = `
-        <div class="mode-main-label">👀 いま：見守り ON（監視中！）</div>
-        <div class="mode-subtext">電気が5秒間つきっぱなしになると警報が鳴ります</div>
-        <div class="mode-tap-hint">👉 トイレを使うときはタップして「OFF」にする</div>
-      `;
+      btn.innerHTML = `<div class="mode-main-label">👀 いま：見守り ON（監視中！）</div><div class="mode-subtext">電気が5秒間つきっぱなしになると警報が鳴ります</div><div class="mode-tap-hint">👉 トイレを使うときはタップして「OFF」にする</div>`;
       addFriendlyHistory("👀 トイレ見守りを「ON（監視中）」にしました");
       
       if (currentLightState === "LIGHT_ON" && !hardwareLightTimer) {
