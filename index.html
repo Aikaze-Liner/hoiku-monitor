@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ほいくえん見守りアプリ (v2.3.0)</title>
+  <title>ほいくえん見守りアプリ (v2.4.0)</title>
   <link rel="manifest" href="manifest.json">
   <style>
     :root {
@@ -94,7 +94,8 @@
   <div class="header-right">
     <div class="clock" id="clock">----年--月--日(--) --:--:--</div>
     <div style="display:flex; gap:6px;">
-      <button class="btn-update" onclick="toggleModal('updateModal')">📢 アプデ履歴</button>
+      <button class="btn-update" style="background:#fef3c7; color:#92400e; border-color:#fcd34d;" onclick="toggleModal('feedbackModal')">💬 ご意見</button>
+      <button class="btn-update" onclick="toggleModal('updateModal')">📢 アプデ</button>
       <label class="dev-toggle" onclick="toggleDevMode()"><span>🔧 開発者</span></label>
     </div>
   </div>
@@ -124,7 +125,7 @@
     <div class="section-title">👀 各ばしょの今のようす</div>
     <div class="status-grid">
       
-      <!-- ★変更：園児立ち入り禁止区域（人感センサーESP32連動） -->
+      <!-- 園児立ち入り禁止区域（人感センサーESP32連動） -->
       <div class="status-item" id="dangerZoneCard">
         <div class="status-header">
           <span>⛔ 園児立ち入り禁止区域（危ない場所）</span>
@@ -213,10 +214,16 @@
   <div class="modal-content">
     <h2 style="margin-bottom:16px;">📢 アップデート履歴</h2>
     <div class="patch-note">
-      <h3><span>v2.3.0</span><span class="patch-badge">最新</span></h3>
+      <h3><span>v2.4.0</span><span class="patch-badge">最新</span></h3>
+      <ul>
+        <li><b>ご意見・ご要望フォームの追加:</b> アプリ画面上から直接フィードバックを送信し、Googleスプレッドシートへ自動記録する機能を追加しました。</li>
+      </ul>
+    </div>
+    <div class="patch-note">
+      <h3><span>v2.3.0</span></h3>
       <ul>
         <li><b>人感センサー（2台目ESP32）との連携を追加:</b> 既存の照度センサー回路とは別系統の人感センサーシステムを統合しました。</li>
-        <li><b>「園児立ち入り禁止区域（危ない場所）」の新設:</b> 門・出入口の設定を「立ち入り禁止区域」に変更し、見守りスイッチのON/OFFに関わらず人を検知すると即座に警報が鳴る常時監視に対応しました。</li>
+        <li><b>「園児立ち入り禁止区域（危ない場所）」の新設:</b> 見守りスイッチのON/OFFに関わらず人を検知すると即座に警報が鳴る常時監視に対応しました。</li>
       </ul>
     </div>
     <div class="patch-note">
@@ -251,6 +258,32 @@
       </ul>
     </div>
     <button class="btn-close" onclick="toggleModal('updateModal')">閉じる</button>
+  </div>
+</div>
+
+<!-- ご意見・ご要望モーダル -->
+<div class="modal-overlay" id="feedbackModal">
+  <div class="modal-content">
+    <h2 style="font-size:1.15rem; margin-bottom:10px; color:var(--text);">💬 ご意見・ご要望フォーム</h2>
+    <p style="font-size:0.8rem; color:var(--sub); margin-bottom:14px; line-height:1.4;">
+      展示をご覧いただきありがとうございます！アプリの使いやすさや「こんな機能がほしい」など、率直なご感想をお聞かせください。
+    </p>
+
+    <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+      <div>
+        <label style="font-size:0.75rem; font-weight:bold; color:var(--sub); display:block; margin-bottom:4px;">お名前・所属（任意）</label>
+        <input type="text" id="fbName" placeholder="例：来場者、先生、学生 など" style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); font-size:0.85rem; box-sizing:border-box;">
+      </div>
+      <div>
+        <label style="font-size:0.75rem; font-weight:bold; color:var(--sub); display:block; margin-bottom:4px;">ご意見・ご要望 <span style="color:var(--danger);">*</span></label>
+        <textarea id="fbBody" rows="4" placeholder="ここに入力してください..." style="width:100%; padding:8px 10px; border-radius:8px; border:1px solid var(--border); font-size:0.85rem; resize:vertical; box-sizing:border-box;"></textarea>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:8px;">
+      <button class="btn-close" style="margin-top:0; background:#94a3b8; flex:1;" onclick="toggleModal('feedbackModal')">キャンセル</button>
+      <button id="btnSendFeedback" class="btn-close" style="margin-top:0; background:var(--primary); flex:2;" onclick="submitFeedback()">送信する 🚀</button>
+    </div>
   </div>
 </div>
 
@@ -329,7 +362,6 @@
       dbgGasRaw = rawText;
       dbgGasStatus = "200 OK";
 
-      // JSON形式（新GAS）とテキスト形式（旧GAS）の両方に互換対応
       if (rawText.startsWith("{")) {
         const data = JSON.parse(rawText);
         currentLightState = data.light || "LIGHT_OFF";
@@ -348,7 +380,7 @@
       document.getElementById("pirConnState").innerHTML = "🔵 監視中";
       document.getElementById("pirConnState").style.color = "var(--safe)";
 
-      // ① 人感センサー（立ち入り禁止区域）の判定 ※常時監視（見守りOFFでも警報を出す）
+      // ① 人感センサー（立ち入り禁止区域）の判定 ※常時監視
       const dangerCard = document.getElementById("dangerZoneCard");
       if (currentPirState === "DANGER_ON") {
         dangerCard.classList.add("danger-zone-active");
@@ -409,6 +441,41 @@
       document.getElementById("pirConnState").style.color = "var(--danger)";
     }
   }, 2000);
+
+  // --- ご意見・ご要望の送信処理 ---
+  async function submitFeedback() {
+    const nameInput = document.getElementById("fbName");
+    const bodyInput = document.getElementById("fbBody");
+    const btn = document.getElementById("btnSendFeedback");
+    
+    const text = bodyInput.value.trim();
+    if (!text) {
+      alert("ご意見・ご要望を入力してください。");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "送信中...";
+
+    try {
+      const name = encodeURIComponent(nameInput.value.trim() || "匿名");
+      const feedback = encodeURIComponent(text);
+      const url = `${gasUrl}?feedback=${feedback}&name=${name}`;
+      
+      await fetch(url, { method: "GET", mode: "no-cors" });
+      
+      alert("ご意見をお送りいただきありがとうございました！");
+      bodyInput.value = "";
+      nameInput.value = "";
+      toggleModal("feedbackModal");
+      addFriendlyHistory("💬 ご意見・ご要望を送信しました");
+    } catch (err) {
+      alert("送信に失敗しました。通信環境をご確認ください。");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "送信する 🚀";
+    }
+  }
 
   // --- 開発者パネル ステータス更新 ---
   setInterval(() => {
