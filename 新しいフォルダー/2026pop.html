@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>文化祭展示ポスター - ほいくえん見守りシステム</title>
+  <style>
+    /* 全体の設定 */
+    body {
+      margin: 0; padding: 0; background: #e2e8f0;
+      display: flex; flex-direction: column; align-items: center; gap: 20px;
+      font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+      color: #1e293b;
+    }
+    
+    /* A4用紙の設定 */
+    .page {
+      width: 210mm; height: 297mm; background: white;
+      padding: 16mm 20mm; box-sizing: border-box;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+      position: relative; overflow: hidden;
+    }
+    @media print {
+      body { background: none; gap: 0; }
+      .page { box-shadow: none; margin: 0; page-break-after: always; padding: 14mm 18mm; }
+    }
+
+    /* 共通デザイン */
+    h1 { color: #2563eb; font-size: 32pt; margin: 0 0 10px 0; border-bottom: 4px solid #3b82f6; padding-bottom: 8px; }
+    .subtitle { font-size: 16pt; color: #64748b; font-weight: bold; margin-bottom: 30px; }
+    h2 { background: #f1f5f9; border-left: 8px solid #2563eb; padding: 10px 15px; font-size: 20pt; margin: 25px 0 15px 0; color: #0f172a; }
+    h3 { font-size: 16pt; color: #1d4ed8; margin: 20px 0 10px 0; display: flex; align-items: center; gap: 8px; }
+    p, ul { font-size: 14pt; line-height: 1.7; margin-bottom: 15px; }
+    ul { padding-left: 30px; }
+    li { margin-bottom: 8px; }
+    .highlight { font-weight: bold; color: #dc2626; background: #fee2e2; padding: 2px 6px; border-radius: 4px; }
+    
+    /* レイアウト用 */
+    .flex-col { display: flex; flex-direction: column; gap: 15px; }
+    .flex-row { display: flex; gap: 20px; align-items: flex-start; }
+    .card { background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; padding: 15px; flex: 1; }
+    
+    /* 画像用 */
+    .img-box { text-align: center; margin: 15px 0; }
+    .img-box img { max-width: 100%; border-radius: 12px; border: 2px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .img-caption { font-size: 11pt; color: #64748b; margin-top: 6px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <!-- 1枚目：プロジェクト概要 -->
+  <div class="page">
+    <h1>📛 ほいくえん見守りシステム</h1>
+    <div class="subtitle">〜 保育現場の負担を減らす、やさしいIoTソリューション 〜</div>
+
+    <h2>🌍 プロジェクトの目的と社会実装</h2>
+    <p>現在、保育現場では「慢性的な人手不足」と「園児の安全管理」という大きな課題を抱えています。<br>
+       本プロジェクトでは、高専で学んだ電子工学とソフトウェアの知識を組み合わせ、最新のIoT技術（マイコンとWebアプリ）を活用した<strong>「保育士さんの見守り業務をさりげなくサポートし、負担を軽減するシステム」</strong>の社会実装を目指しています。</p>
+
+    <h2>🏢 運用想定シーン（どこで使うか）</h2>
+    <p>主に保育園内の以下のようなスペースでの運用を想定し、システムを開発しました。</p>
+    <div class="flex-row">
+      <div class="card">
+        <h3>🚽 トイレ・手洗い場</h3>
+        <p>水の出しっぱなしや電気の消し忘れの防止。一定時間でアラートを発火。</p>
+      </div>
+      <div class="card">
+        <h3>⛔ 立ち入り禁止区域</h3>
+        <p>門や危険な場所への園児の不用意な侵入を、人感センサーで即時検知。</p>
+      </div>
+      <div class="card">
+        <h3>🛏️ お昼寝ルーム</h3>
+        <p>スマホのマイク機能を活用し、お部屋の様子（騒音や泣き声）を自動把握。</p>
+      </div>
+    </div>
+
+    <h2>✨ システムの3つの特徴</h2>
+    <ul>
+      <li><strong>アプリのインストール不要（PWA技術）：</strong>お手持ちのスマートフォンからブラウザで開くだけで、専用アプリのようにホーム画面に追加して使用可能です。</li>
+      <li><strong>直感的な巨大スイッチ：</strong>トイレの「利用中（見守りOFF）」と「空室（見守りON）」を大きなボタンで切り替え。機械が苦手な方でも迷わず操作できます。</li>
+      <li><strong>優しい警告とプッシュ通知：</strong>異常を検知すると、スマホの画面が<span class="highlight">赤色の警告画面</span>に切り替わり、チャイム音とプッシュ通知でお知らせします。</li>
+    </ul>
+    
+    <div style="text-align: center; margin-top: 30px; font-size: 40pt;">📱 ↔️ ☁️ ↔️ 🔌</div>
+  </div>
+
+  <!-- 2枚目：ハードウェアと技術 -->
+  <div class="page">
+    <h1>🛠️ 独自開発のIoTハードウェア</h1>
+    <div class="subtitle">〜 現場に溶け込むセンサー群と今後の展望 〜</div>
+
+    <p>本システムは、現場に設置するセンサー（ESP32マイコン）とスマホアプリが、Google Apps Script (GAS) を中継サーバーとしてリアルタイムに連動します。</p>
+
+    <div class="flex-row">
+      <!-- 左カラム -->
+      <div style="flex: 1;">
+        <h3>💡 ① 消し忘れ見守りユニット</h3>
+        <p>トイレの明かりを検知し、一定時間（5秒）以上つけっぱなしになるとスマホへ警告を送信します。</p>
+        <p><strong>【専用ケースの開発】</strong><br>
+        実用化に向けて、ブレッドボードでの試作から<strong>専用のハードウェアケース</strong>を自作しました。現場に設置しやすいようコンパクトに設計し、動作状態がわかる青色LEDのスリットを設けたスタイリッシュなデザインに仕上げています。</p>
+      </div>
+      <!-- 右カラム (画像) -->
+      <div style="flex: 1;" class="img-box">
+        <img src="35477.jpg" alt="3Dプリントした専用ケース">
+        <div class="img-caption">▲ 実装に向けて開発した専用のセンサー筐体</div>
+      </div>
+    </div>
+
+    <hr style="border:1px dashed #cbd5e1; margin: 20px 0;">
+
+    <div class="flex-row">
+      <!-- 左カラム (画像) -->
+      <div style="flex: 1;" class="img-box">
+        <img src="35393.jpg" alt="人感センサーとオーディオアンプ回路">
+        <div class="img-caption">▲ 独自のオーディオ回路と人感センサーを統合</div>
+      </div>
+      <!-- 右カラム -->
+      <div style="flex: 1;">
+        <h3>🚨 ② 立ち入り禁止区域の常時監視</h3>
+        <p>赤外線人感センサー（PIR）を搭載し、危険な場所に園児が近づくと、即座にスマホへ緊急通知を送る常時監視ユニットです。</p>
+        <p>センサー本体にも<strong>高音質なオーディオアンプとスピーカーを内蔵</strong>しており、人を検知した瞬間に現場でも「ピンポン♪」と警告音を鳴らす本格的な設計を実現しました。</p>
+      </div>
+    </div>
+
+    <h2>🚀 今後の課題と展開</h2>
+    <div class="card">
+      <ul>
+        <li><strong>保育園での実証実験：</strong> 実際の現場で保育士さんに使っていただき、操作感や通知タイミングのフィードバックを得て改善を行う。</li>
+        <li><strong>複数端末での完全同期：</strong> 複数の保育士さんが同時にアプリを開いた際、全員の画面のスイッチ状態を完全に同期させるバックエンドの強化。</li>
+        <li><strong>ハードウェアの最適化：</strong> センサーユニットのさらなる小型化や、コンセントがない場所でも運用できる省電力化（ディープスリープ）の検討。</li>
+      </ul>
+    </div>
+  </div>
+
+</body>
+</html>
